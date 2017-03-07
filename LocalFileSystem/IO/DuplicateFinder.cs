@@ -35,54 +35,31 @@ namespace LocalFileSystem.IO
             return _task;
         }
 
+        protected virtual void OnFileAdded(FileInfo file)
+        {
+
+        }
+
+        protected virtual void OnDuplicateFound(IEnumerable<FileInfo> duplicates)
+        {
+            
+        }
+
+        protected virtual void OnDirectoryError(DirectoryException ex)
+        {
+
+        }
+
+        protected virtual void OnFileError(FileException ex)
+        {
+
+        }
+
         private void InternalStart(IEnumerable<DirectoryInfo> dirs, IFileInfoEqualityComparer fileComparer)
         {
-            AddDirs(dirs);
-            SortFiles();
-            FindDuplicates(fileComparer);
-        }
-
-        private void AddDirs(IEnumerable<DirectoryInfo> dirs)
-        {
-            foreach (DirectoryInfo dir in dirs)
-            {
-                _token.ThrowIfCancellationRequested();
-
-                if (dir == null)
-                {
-                    OnDirectoryError(new DirectoryException(dir, new ArgumentNullException()));
-                    continue;
-                }
-
-                AddFiles(dir);
-            }
-        }
-
-        private void AddFiles(DirectoryInfo parent)
-        {
-            try
-            {
-                foreach (var fsi in parent.EnumerateFileSystemInfos())
-                {
-                    _token.ThrowIfCancellationRequested();
-
-                    if (fsi is FileInfo file)
-                        _files.Add(file);
-                    else if (fsi is DirectoryInfo dir)
-                        AddFiles(dir);
-                }
-            }
-            catch (Exception ex) when (ex is IOException ||
-                                       ex is UnauthorizedAccessException ||
-                                       ex is SecurityException)
-            {
-                OnDirectoryError(new DirectoryException(parent, ex));
-            }
-        }
-
-        private void SortFiles()
-        {
+            new FileInfoEnumerator(this).AddDirectories(dirs);
             _files.Sort((x, y) => y.Length.CompareTo(x.Length));
+            FindDuplicates(fileComparer);
         }
 
         private void FindDuplicates(IFileInfoEqualityComparer fileComparer)
@@ -110,7 +87,7 @@ namespace LocalFileSystem.IO
                 if (length == 2)
                 {
                     if (fileInfoComparer.Equals(_files[start], _files[start + 1]))
-                        OnDuplicateFound(start, length);
+                        MarkAsDuplicates(start, length);
                 }
                 else
                 {
@@ -145,28 +122,92 @@ namespace LocalFileSystem.IO
                 }
 
                 if (equalFiles > 1)
-                    OnDuplicateFound(start + i, equalFiles);
+                    MarkAsDuplicates(start + i, equalFiles);
 
                 i += equalFiles;
             }
         }
-        
-        protected virtual void OnDuplicateFound(int start, int length)
-        {
-            for (int i = start; i < start + length; i++)
-                Console.WriteLine(_files[i].FullName);
 
-            Console.WriteLine();
+        private void MarkAsDuplicates(int start, int length)
+        {
+            OnDuplicateFound(CreateView(start, length));
         }
 
-        protected virtual void OnDirectoryError(DirectoryException ex)
+        private IEnumerable<FileInfo> CreateView(int start, int length)
         {
+            var maxExclusive = start + length;
 
+            for (var i = start; i < maxExclusive; i++)
+                yield return _files[i];
         }
 
-        protected virtual void OnFileError(FileException ex)
+        private struct FileInfoEnumerator
         {
+            private DuplicateFinder _df;
+            private List<DirectoryInfo> _stack;
 
+            public FileInfoEnumerator(DuplicateFinder df)
+            {
+                _df = df;
+                _stack = new List<DirectoryInfo>();
+            }
+            
+            public void AddDirectories(IEnumerable<DirectoryInfo> dirs)
+            {
+                foreach (DirectoryInfo dir in dirs)
+                {
+                    _df._token.ThrowIfCancellationRequested();
+
+                    if (dir == null)
+                    {
+                        _df.OnDirectoryError(new DirectoryException(dir, new ArgumentNullException()));
+                        continue;
+                    }
+
+                    _stack.Add(dir);
+
+                    while (_stack.Count > 0)
+                    {
+                        _df._token.ThrowIfCancellationRequested();
+
+                        var index = _stack.Count - 1;
+                        var curDir = _stack[index];
+                        _stack.RemoveAt(index);
+
+                        AddDirectory(curDir);
+
+                        if (_stack.Count > index)
+                            _stack.Reverse(index, _stack.Count - index);
+                    }
+                }
+            }
+
+            private void AddDirectory(DirectoryInfo curDir)
+            {
+                try
+                {
+                    foreach (var fsi in curDir.EnumerateFileSystemInfos())
+                    {
+                        _df._token.ThrowIfCancellationRequested();
+
+                        if (fsi is FileInfo file)
+                        {
+                            _df._files.Add(file);
+                            _df.OnFileAdded(file);
+                        }
+                        else if (fsi is DirectoryInfo dir)
+                        {
+                            _stack.Add(dir);
+                        }
+                    }
+                }
+                catch (Exception ex) when (ex is IOException ||
+                                           ex is UnauthorizedAccessException ||
+                                           ex is SecurityException)
+                {
+                    _df.OnDirectoryError(new DirectoryException(curDir, ex));
+                }
+            }
         }
 
         private struct MultiFileEqualityComparer
@@ -201,7 +242,7 @@ namespace LocalFileSystem.IO
                         int equalFiles = GetEqualFiles(i);
 
                         if (equalFiles > 1)
-                            _df.OnDuplicateFound(_start + i, equalFiles);
+                            _df.MarkAsDuplicates(_start + i, equalFiles);
 
                         i += equalFiles;
                     }
