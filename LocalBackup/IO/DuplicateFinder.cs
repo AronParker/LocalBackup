@@ -117,9 +117,9 @@ namespace LocalBackup.IO
                 else
                 {
                     if (fileInfoComparer is IFileEqualityComprarer fileComparer)
-                        GroupEqualAtTop(start, length, fileComparer);
+                        GroupEqualFilesAtTop(start, length, fileComparer);
                     else
-                        GroupEqualAtTop(start, length, fileInfoComparer);
+                        GroupEqualFileInfosAtTop(start, length, fileInfoComparer);
                 }
             }
             catch (FileException ex)
@@ -128,7 +128,7 @@ namespace LocalBackup.IO
             }
         }
 
-        private void GroupEqualAtTop(int start, int length, IFileInfoEqualityComparer fileInfoComparer)
+        private void GroupEqualFileInfosAtTop(int start, int length, IFileInfoEqualityComparer fileInfoComparer)
         {
             for (var i = 0; i < length;)
             {
@@ -153,34 +153,17 @@ namespace LocalBackup.IO
             }
         }
 
-        private void GroupEqualAtTop(int start, int length, IFileEqualityComprarer fileComparer)
+        private void GroupEqualFilesAtTop(int start, int length, IFileEqualityComprarer fileComparer)
         {
             var fs = new FileStream[length];
 
             try
             {
-                for (var i = 0; i < fs.Length; i++)
-                    fs[i] = FileSystem.OpenFile(_files[start + i]);
+                var fileStreams = OpenFiles(fs, start);
 
-                for (var i = 0; i < length;)
+                for (var i = 0; i < fileStreams;)
                 {
-                    var equalFiles = 1;
-
-                    for (int j = i + 1; j < length; j++)
-                    {
-                        var f1 = _files[start + i];
-                        var fs1 = fs[i];
-                        var f2 = _files[start + j];
-                        var fs2 = fs[j];
-
-                        if (fileComparer.Equals(f1, fs1, f2, fs2))
-                        {
-                            equalFiles++;
-
-                            _files.Swap(start + i, start + j);
-                            fs.Swap(i, j);
-                        }
-                    }
+                    int equalFiles = GetEqualFiles(fs, start, i, fileComparer, ref fileStreams);
 
                     if (equalFiles > 1)
                         OnDuplicateFound(start + i, equalFiles);
@@ -194,6 +177,72 @@ namespace LocalBackup.IO
                     if (fs[i] != null)
                         fs[i].Dispose();
             }
+        }
+
+        private int OpenFiles(FileStream[] fs, int start)
+        {
+            var fileStreams = fs.Length;
+
+            for (var i = 0; i < fileStreams;)
+            {
+                try
+                {
+                    fs[i] = FileSystem.OpenFile(_files[start + i]);
+                    i++;
+                }
+                catch (FileException ex)
+                {
+                    OnFileError(ex);
+
+                    fileStreams--;
+                    _files.Swap(start + i, start + fileStreams);
+                }
+            }
+
+            return fileStreams;
+        }
+
+        private int GetEqualFiles(FileStream[] fs, int start, int i, IFileEqualityComprarer fileComparer, ref int fileStreams)
+        {
+            var f1 = _files[start + i];
+            var fs1 = fs[i];
+
+            var equalFiles = 1;
+
+            for (int j = i + 1; j < fileStreams; j++)
+            {
+                var f2 = _files[start + j];
+                var fs2 = fs[j];
+
+                try
+                {
+                    if (fileComparer.Equals(f1, fs1, f2, fs2))
+                    {
+                        equalFiles++;
+
+                        _files.Swap(start + i, start + j);
+                        fs.Swap(i, j);
+                    }
+                }
+                catch (FileException ex) when (ex.File == f1)
+                {
+                    OnFileError(ex);
+                    break;
+                }
+                catch (FileException ex) when (ex.File == f2)
+                {
+                    OnFileError(ex);
+                    fileStreams--;
+
+                    if (start + j != start + fileStreams)
+                    {
+                        _files.Swap(start + j, start + fileStreams);
+                        fs.Swap(j, fileStreams);
+                    }
+                }
+            }
+
+            return equalFiles;
         }
 
         protected virtual void OnDuplicateFound(int start, int length)
