@@ -17,7 +17,12 @@ namespace LocalFileSystem.IO
 
         public bool IsRunning => _task != null && !_task.IsCompleted;
 
-        public Task Start(IEnumerable<DirectoryInfo> dirs, IFileInfoEqualityComparer fileInfoComparer, CancellationToken token)
+        public Task RunAsync(IEnumerable<DirectoryInfo> dirs, IFileInfoEqualityComparer fileInfoComparer)
+        {
+            return RunAsync(dirs, fileInfoComparer, CancellationToken.None);
+        }
+
+        public Task RunAsync(IEnumerable<DirectoryInfo> dirs, IFileInfoEqualityComparer fileInfoComparer, CancellationToken token)
         {
             if (dirs == null)
                 throw new ArgumentNullException(nameof(dirs));
@@ -30,12 +35,7 @@ namespace LocalFileSystem.IO
             return _task;
         }
 
-#if DEBUG
-        public
-#else
-        private
-#endif
-        void InternalStart(IEnumerable<DirectoryInfo> dirs, IFileInfoEqualityComparer fileComparer)
+        private void InternalStart(IEnumerable<DirectoryInfo> dirs, IFileInfoEqualityComparer fileComparer)
         {
             AddDirs(dirs);
             SortFiles();

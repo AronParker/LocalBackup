@@ -65,7 +65,7 @@
     <Compile Include="IO\FileException.cs" />
     <Compile Include="IO\FileComparers\NTFSFileComparer.cs" />
     <Compile Include="IO\FileSystem.cs" />
-    <Compile Include="IO\ChangesDetector.cs" />
+    <Compile Include="IO\DirectoryMirrorer.cs" />
     <Compile Include="IO\Errors\FileSystemError.cs" />
     <Compile Include="IO\FileSystemItem.cs" />
     <Compile Include="IO\FileSystemItemEventArgs.cs" />

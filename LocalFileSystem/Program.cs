@@ -21,7 +21,6 @@ namespace LocalFileSystem
             var finder = new DuplicateFinder();
             var dirs = new List<DirectoryInfo>();
             dirs.Add(new DirectoryInfo(@"C:\Users\Aron\Desktop\1"));
-            finder.InternalStart(dirs, new FileComparer());
             
             Console.ReadLine();
 
