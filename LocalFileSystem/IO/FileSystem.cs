@@ -48,6 +48,7 @@ namespace LocalFileSystem.IO
                 throw new FileException(file, ex);
             }
         }
+
         public static FileAttributes ClearArchiveAttribute(FileAttributes attributes)
         {
             return attributes & ~(FileAttributes.Archive);
