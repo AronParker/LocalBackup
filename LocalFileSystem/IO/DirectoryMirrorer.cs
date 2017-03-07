@@ -15,7 +15,7 @@ namespace LocalFileSystem.IO
         private const int BufferSize = 512 * 1024;
 
         private List<DirectoryInfo> _stack = new List<DirectoryInfo>();
-        private Dictionary<string, FileSystemInfo> _dict = new Dictionary<string, FileSystemInfo>(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<string, FileSystemInfo> _dstLookup = new Dictionary<string, FileSystemInfo>(StringComparer.OrdinalIgnoreCase);
         private DirectoryCopier _copier;
         private DirectoryDeleter _deleter;
         
@@ -66,102 +66,133 @@ namespace LocalFileSystem.IO
             _stack.Clear();
             _stack.Add(curDstDir);
             _stack.Add(curSrcDir);
-            
+
+            PostOperations(fileInfoComparer);
+
+            _dstLookup.Clear();
+        }
+
+        private void PostOperations(IFileInfoEqualityComparer fileInfoComparer)
+        {
             while (_stack.Count > 0)
             {
                 _token.ThrowIfCancellationRequested();
 
                 var index = _stack.Count;
-
-                curSrcDir = _stack[--index];
-                curDstDir = _stack[--index];
+                var srcDir = _stack[--index];
+                var dstDir = _stack[--index];
 
                 _stack.RemoveRange(index, 2);
-                
-                if (FileSystem.ClearArchiveAttribute(curSrcDir.Attributes) != FileSystem.ClearArchiveAttribute(curDstDir.Attributes))
-                    OnItemFound(new EditDirectoryOperation(curDstDir, curSrcDir.Attributes));
 
-                _dict.Clear();
-                try
-                {
-                    foreach (var dstFsi in curDstDir.EnumerateFileSystemInfos())
-                        _dict.Add(dstFsi.Name, dstFsi);
+                if (FileSystem.ClearArchiveAttribute(srcDir.Attributes) != FileSystem.ClearArchiveAttribute(dstDir.Attributes))
+                    OnItemFound(new EditDirectoryOperation(dstDir, srcDir.Attributes));
 
-                    try
-                    {
-                        foreach (var srcFsi in curSrcDir.EnumerateFileSystemInfos())
-                        {
-                            if (_dict.TryGetValue(srcFsi.Name, out var dstFsi))
-                            {
-                                _dict.Remove(srcFsi.Name);
-                                
-                                if (srcFsi is FileInfo srcFile)
-                                {
-                                    if (dstFsi is FileInfo dstFile)
-                                    {
-                                        try
-                                        {
-                                            if (!fileInfoComparer.Equals(srcFile, dstFile))
-                                                OnItemFound(new EditFileOperation(srcFile, dstFile));
-                                        }
-                                        catch (FileException ex)
-                                        {
-                                            OnItemFound(new FileError(ex.File, ex.InnerException));
-                                        }
-                                    }
-                                    else if (dstFsi is DirectoryInfo dstDir)
-                                    {
-                                        _deleter.DeleteDirectory(dstDir);
-                                        OnItemFound(new CopyFileOperation(srcFile, new FileInfo(dstFsi.FullName)));
-                                    }
-                                }
-                                else if (srcFsi is DirectoryInfo srcDir)
-                                {
-                                    if (dstFsi is FileInfo dstFile)
-                                    {
-                                        OnItemFound(new DeleteFileOperation(dstFile));
-
-                                        _copier.CopyDirectory(srcDir, new DirectoryInfo(dstFsi.FullName));
-                                    }
-                                    else if (dstFsi is DirectoryInfo dstDir)
-                                    {                                        
-                                        _stack.Add(srcDir);
-                                        _stack.Add(dstDir);
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                if (srcFsi is FileInfo srcFile)
-                                    OnItemFound(new CopyFileOperation(srcFile, new FileInfo(Path.Combine(curDstDir.FullName, srcFile.Name))));
-                                else if (srcFsi is DirectoryInfo srcDir)
-                                    _copier.CopyDirectory(srcDir, new DirectoryInfo(Path.Combine(curDstDir.FullName, srcDir.Name)));
-                            }
-                        }
-                    }
-                    catch (Exception ex) when (ex is IOException ||
-                                               ex is UnauthorizedAccessException ||
-                                               ex is SecurityException)
-                    {
-                        OnItemFound(new DirectoryError(curSrcDir, ex));
-                    }
-                }
-                catch (Exception ex) when (ex is IOException ||
-                                           ex is UnauthorizedAccessException ||
-                                           ex is SecurityException)
-                {
-                    OnItemFound(new DirectoryError(curDstDir, ex));
-                }
+                PostDirectoryChanges(srcDir, dstDir, fileInfoComparer);
 
                 if (_stack.Count > index)
                     _stack.Reverse(index, _stack.Count - index);
+            }
+        }
 
-                foreach (var dstFsi in _dict.Values)
+        private void PostDirectoryChanges(DirectoryInfo srcDir, DirectoryInfo dstDir, IFileInfoEqualityComparer fileInfoComparer)
+        {
+            BuildDestinationLookup(dstDir);
+
+            try
+            {
+                foreach (var srcFsi in srcDir.EnumerateFileSystemInfos())
+                    ProcessSourceFileSystemInfo(srcFsi, dstDir, fileInfoComparer);
+            }
+            catch (Exception ex) when (ex is IOException ||
+                                       ex is UnauthorizedAccessException ||
+                                       ex is SecurityException)
+            {
+                OnItemFound(new DirectoryError(srcDir, ex));
+            }
+
+            RemoveLeftovers();
+        }
+
+        private void BuildDestinationLookup(DirectoryInfo dstDir)
+        {
+            _dstLookup.Clear();
+
+            try
+            {
+                foreach (var dstFsi in dstDir.EnumerateFileSystemInfos())
+                    _dstLookup.Add(dstFsi.Name, dstFsi);
+            }
+            catch (Exception ex) when (ex is IOException ||
+                                       ex is UnauthorizedAccessException ||
+                                       ex is SecurityException)
+            {
+                OnItemFound(new DirectoryError(dstDir, ex));
+            }
+        }
+
+        private void ProcessSourceFileSystemInfo(FileSystemInfo srcFsi, DirectoryInfo dstDir, IFileInfoEqualityComparer fileInfoComparer)
+        {
+            var fsiExistsInDst = _dstLookup.TryGetValue(srcFsi.Name, out var dstFsi);
+
+            if (fsiExistsInDst)
+            {
+                _dstLookup.Remove(srcFsi.Name);
+                CompareFileSystenInfo(srcFsi, dstFsi, fileInfoComparer);
+            }
+            else
+            {
+                if (srcFsi is FileInfo srcFile)
+                    OnItemFound(new CopyFileOperation(srcFile, new FileInfo(Path.Combine(dstDir.FullName, srcFile.Name))));
+                else if (srcFsi is DirectoryInfo srcDir)
+                    _copier.CopyDirectory(srcDir, new DirectoryInfo(Path.Combine(dstDir.FullName, srcDir.Name)));
+            }
+        }
+
+        private void RemoveLeftovers()
+        {
+            foreach (var dstFsi in _dstLookup.Values)
+            {
+                if (dstFsi is FileInfo fileInDst)
+                    OnItemFound(new DeleteFileOperation(fileInDst));
+                else if (dstFsi is DirectoryInfo dirInDst)
+                    _deleter.DeleteDirectory(dirInDst);
+            }
+        }
+
+        private void CompareFileSystenInfo(FileSystemInfo srcFsi, FileSystemInfo dstFsi, IFileInfoEqualityComparer fileInfoComparer)
+        {
+            if (srcFsi is FileInfo srcFile)
+            {
+                if (dstFsi is FileInfo dstFile)
                 {
-                    if (dstFsi is FileInfo fileInDst)
-                        OnItemFound(new DeleteFileOperation(fileInDst));
-                    else if (dstFsi is DirectoryInfo dirInDst)
-                        _deleter.DeleteDirectory(dirInDst);
+                    try
+                    {
+                        if (!fileInfoComparer.Equals(srcFile, dstFile))
+                            OnItemFound(new EditFileOperation(srcFile, dstFile));
+                    }
+                    catch (FileException ex)
+                    {
+                        OnItemFound(new FileError(ex.File, ex.InnerException));
+                    }
+                }
+                else if (dstFsi is DirectoryInfo dstDir)
+                {
+                    _deleter.DeleteDirectory(dstDir);
+                    OnItemFound(new CopyFileOperation(srcFile, new FileInfo(dstFsi.FullName)));
+                }
+            }
+            else if (srcFsi is DirectoryInfo srcDir)
+            {
+                if (dstFsi is FileInfo dstFile)
+                {
+                    OnItemFound(new DeleteFileOperation(dstFile));
+
+                    _copier.CopyDirectory(srcDir, new DirectoryInfo(dstFsi.FullName));
+                }
+                else if (dstFsi is DirectoryInfo dstDir)
+                {
+                    _stack.Add(srcDir);
+                    _stack.Add(dstDir);
                 }
             }
         }
@@ -169,76 +200,76 @@ namespace LocalFileSystem.IO
         private struct DirectoryCopier
         {
             private DirectoryMirrorer _detector;
-            private List<DirectoryInfo> _srcDirStack;
-            private List<DirectoryInfo> _dstDirStack;
+            private List<DirectoryInfo> _stack;
 
             public DirectoryCopier(DirectoryMirrorer detector)
             {
                 _detector = detector;
-                _srcDirStack = new List<DirectoryInfo>();
-                _dstDirStack = new List<DirectoryInfo>();
+                _stack = new List<DirectoryInfo>();
             }
             
-            public void CopyDirectory(DirectoryInfo curSrcDir, DirectoryInfo curDstDir)
+            public void CopyDirectory(DirectoryInfo srcDir, DirectoryInfo dstDir)
             {
-                _srcDirStack.Clear();
-                _dstDirStack.Clear();
+                _stack.Clear();
+                _stack.Add(dstDir);
+                _stack.Add(srcDir);
 
-                _srcDirStack.Add(curSrcDir);
-                _dstDirStack.Add(curDstDir);
+                _detector.OnItemFound(new CreateDirectoryOperation(dstDir));
 
-                _detector.OnItemFound(new CreateDirectoryOperation(curDstDir));
-                
-                if (FileSystem.ClearArchiveAttribute(curSrcDir.Attributes) != FileAttributes.Directory)
-                    _detector.OnItemFound(new EditDirectoryOperation(curDstDir, curSrcDir.Attributes));
-                
-                while (_srcDirStack.Count > 0)
+                if (FileSystem.ClearArchiveAttribute(srcDir.Attributes) != FileAttributes.Directory)
+                    _detector.OnItemFound(new EditDirectoryOperation(dstDir, srcDir.Attributes));
+
+                PostOperations();
+            }
+
+            private void PostOperations()
+            {
+                while (_stack.Count > 0)
                 {
                     _detector._token.ThrowIfCancellationRequested();
 
-                    var index = _srcDirStack.Count - 1;
+                    var index = _stack.Count;
+                    var srcDir = _stack[--index];
+                    var dstDir = _stack[--index];
 
-                    curSrcDir = _srcDirStack[index];
-                    curDstDir = _dstDirStack[index];
+                    _stack.RemoveRange(index, 2);
+                    PostCopyDirectoryOperations(srcDir, dstDir);
 
-                    _srcDirStack.RemoveAt(index);
-                    _dstDirStack.RemoveAt(index);
+                    if (_stack.Count > index)
+                        _stack.Reverse(index, _stack.Count - index);
+                }
+            }
 
-                    try
+            private void PostCopyDirectoryOperations(DirectoryInfo curSrcDir, DirectoryInfo curDstDir)
+            {
+                try
+                {
+                    foreach (var srcFsi in curSrcDir.EnumerateFileSystemInfos())
                     {
-                        foreach (var srcFsi in curSrcDir.EnumerateFileSystemInfos())
+                        if (srcFsi is FileInfo srcFile)
                         {
-                            if (srcFsi is FileInfo srcFile)
-                            {
-                                var dstFile = new FileInfo(Path.Combine(curDstDir.FullName, srcFsi.Name));
-                                _detector.OnItemFound(new CopyFileOperation(srcFile, dstFile));
-                            }
-                            else if (srcFsi is DirectoryInfo srcDir)
-                            {
-                                var dstDir = new DirectoryInfo(Path.Combine(curDstDir.FullName, srcFsi.Name));
+                            var dstFile = new FileInfo(Path.Combine(curDstDir.FullName, srcFsi.Name));
+                            _detector.OnItemFound(new CopyFileOperation(srcFile, dstFile));
+                        }
+                        else if (srcFsi is DirectoryInfo srcDir)
+                        {
+                            var dstDir = new DirectoryInfo(Path.Combine(curDstDir.FullName, srcFsi.Name));
 
-                                _detector.OnItemFound(new CreateDirectoryOperation(dstDir));
+                            _detector.OnItemFound(new CreateDirectoryOperation(dstDir));
 
-                                if (FileSystem.ClearArchiveAttribute(srcDir.Attributes) != FileAttributes.Directory)
-                                    _detector.OnItemFound(new EditDirectoryOperation(dstDir, srcDir.Attributes));
+                            if (FileSystem.ClearArchiveAttribute(srcDir.Attributes) != FileAttributes.Directory)
+                                _detector.OnItemFound(new EditDirectoryOperation(dstDir, srcDir.Attributes));
 
-                                _srcDirStack.Add(srcDir);
-                                _dstDirStack.Add(dstDir);
-                            }
+                            _stack.Add(srcDir);
+                            _stack.Add(dstDir);
                         }
                     }
-                    catch (Exception ex) when (ex is IOException ||
-                                               ex is UnauthorizedAccessException ||
-                                               ex is SecurityException)
-                    {
-                        _detector.OnItemFound(new DirectoryError(curSrcDir, ex));
-                    }
-                    
-                    if (_srcDirStack.Count > index)
-                    {
-                        _srcDirStack.Reverse(index, _srcDirStack.Count - index);
-                        _dstDirStack.Reverse(index, _dstDirStack.Count - index);
-                    }
+                }
+                catch (Exception ex) when (ex is IOException ||
+                                           ex is UnauthorizedAccessException ||
+                                           ex is SecurityException)
+                {
+                    _detector.OnItemFound(new DirectoryError(curSrcDir, ex));
                 }
             }
         }
@@ -256,57 +287,65 @@ namespace LocalFileSystem.IO
                 _operationsStack = new List<FileSystemOperation>();
             }
 
-            public void DeleteDirectory(DirectoryInfo curDir)
+            public void DeleteDirectory(DirectoryInfo dir)
             {
                 _stack.Clear();
                 _operationsStack.Clear();
 
-                _stack.Add(curDir);
-                _operationsStack.Add(new DestroyDirectoryOperation(curDir));
+                _stack.Add(dir);
+                _operationsStack.Add(new DestroyDirectoryOperation(dir));
 
+                GetOperations();
+                PostOperations();
+            }
+
+            private void GetOperations()
+            {
                 while (_stack.Count > 0)
                 {
                     _detector._token.ThrowIfCancellationRequested();
 
-                    var dirIndex = _stack.Count - 1;
+                    var curDir = _stack[_stack.Count - 1];
+                    _stack.RemoveAt(_stack.Count - 1);
 
-                    curDir = _stack[dirIndex];
-                    _stack.RemoveAt(dirIndex);
+                    var index = _operationsStack.Count;
+                    GetDeleteDirectoryOperations(curDir);
 
-                    var opIndex = _operationsStack.Count;
+                    _operationsStack.Reverse(index, _operationsStack.Count - index);
+                }
+            }
 
-                    try
+            private void GetDeleteDirectoryOperations(DirectoryInfo curDir)
+            {
+                try
+                {
+                    foreach (var fsi in curDir.EnumerateFileSystemInfos())
                     {
-                        foreach (var fsi in curDir.EnumerateFileSystemInfos())
+                        if (fsi is FileInfo file)
                         {
-                            if (fsi is FileInfo file)
-                            {
-                                _operationsStack.Add(new DeleteFileOperation(file));
-                            }
-                            else if (fsi is DirectoryInfo dir)
-                            {
-                                _stack.Add(dir);
-                                _operationsStack.Add(new DestroyDirectoryOperation(dir));
-                            }
+                            _operationsStack.Add(new DeleteFileOperation(file));
+                        }
+                        else if (fsi is DirectoryInfo dir)
+                        {
+                            _stack.Add(dir);
+                            _operationsStack.Add(new DestroyDirectoryOperation(dir));
                         }
                     }
-                    catch (Exception ex) when (ex is IOException ||
-                                               ex is UnauthorizedAccessException ||
-                                               ex is SecurityException)
-                    {
-                        _detector.OnItemFound(new DirectoryError(curDir, ex));
-                    }
-
-                    _operationsStack.Reverse(opIndex, _operationsStack.Count - opIndex);
                 }
+                catch (Exception ex) when (ex is IOException ||
+                                           ex is UnauthorizedAccessException ||
+                                           ex is SecurityException)
+                {
+                    _detector.OnItemFound(new DirectoryError(curDir, ex));
+                }
+            }
 
-                var index = _operationsStack.Count;
-
-                while (--index >= 0)
+            private void PostOperations()
+            {
+                for (var i = _operationsStack.Count-1; i >= 0; i--)
                 {
                     _detector._token.ThrowIfCancellationRequested();
-
-                    _detector.OnItemFound(_operationsStack[index]);
+                    _detector.OnItemFound(_operationsStack[i]);
                 }
 
                 _operationsStack.Clear();
