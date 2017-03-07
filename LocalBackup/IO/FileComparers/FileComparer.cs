@@ -57,13 +57,7 @@ namespace LocalBackup.IO.FileComparers
                 do
                 {
                     var len = (int)Math.Min(bytesLeft, BufferSize);
-
-#if DEBUG
-                    if (f1.Name == "a1.txt")
-                        throw new FileException(f1, new IOException("OOPS MY BAD 8D"));
-                    if (f2.Name == "b2.txt")
-                        throw new FileException(f2, new IOException("OOPS MY BAD 8D"));
-#endif 
+                    
                     FileSystem.ReadFile(f1, fs1, _buffer1, 0, len);
                     FileSystem.ReadFile(f2, fs2, _buffer2, 0, len);
 

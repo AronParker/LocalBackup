@@ -117,7 +117,7 @@ namespace LocalBackup.IO
                 else
                 {
                     if (fileInfoComparer is IFileEqualityComprarer fileComparer)
-                        new MultiFileEqualityComparer(this, start, length, fileComparer);
+                        new MultiFileEqualityComparer(this, start, length, fileComparer).FindDuplicates();
                     else
                         GroupEqualFileInfosAtTop(start, length, fileInfoComparer);
                 }
