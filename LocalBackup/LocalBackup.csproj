@@ -56,8 +56,6 @@
     <Compile Include="Extensions\StreamEx.cs" />
     <Compile Include="IO\DirectoryException.cs" />
     <Compile Include="IO\DuplicateFinder.cs" />
-    <Compile Include="IO\Errors\DirectoryError.cs" />
-    <Compile Include="IO\Errors\FileError.cs" />
     <Compile Include="IO\FileComparers\FATFileComparer.cs" />
     <Compile Include="IO\FileComparers\FileComparer.cs" />
     <Compile Include="IO\FileComparers\IFileInfoEqualityComparer.cs" />
@@ -70,7 +68,6 @@
     <Compile Include="IO\FileInfoEnumerableEventHandler.cs" />
     <Compile Include="IO\FileSystem.cs" />
     <Compile Include="IO\DirectoryMirrorer.cs" />
-    <Compile Include="IO\Errors\FileSystemError.cs" />
     <Compile Include="IO\FileSystemItem.cs" />
     <Compile Include="IO\FileSystemItemEventArgs.cs" />
     <Compile Include="IO\FileSystemItemHandler.cs" />
