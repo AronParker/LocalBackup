@@ -12,7 +12,7 @@ namespace LocalBackup.IO.Operations
         }
 
         public override string Name => "Delete file";
-        public override FileSystemItemType Type => FileSystemItemType.DeleteFile;
+        public override FileSystemOperationType Type => FileSystemOperationType.DeleteFile;
         public override string FileName => _file.Name;
         public override string FullPath => _file.FullName;
         public FileInfo File => _file;

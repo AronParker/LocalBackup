@@ -14,7 +14,7 @@ namespace LocalBackup.IO.Operations
         }
 
         public override string Name => "Edit file";
-        public override FileSystemItemType Type => FileSystemItemType.EditFile;
+        public override FileSystemOperationType Type => FileSystemOperationType.EditFile;
         public override string FileName => dstFile.Name;
         public override string FullPath => dstFile.FullName;
         public override long Weight => SourceFile.Length / 4096 + 1;

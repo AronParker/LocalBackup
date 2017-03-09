@@ -14,7 +14,7 @@ namespace LocalBackup.IO.Operations
         }
 
         public override string Name => "Edit directory";
-        public override FileSystemItemType Type => FileSystemItemType.EditDirectory;
+        public override FileSystemOperationType Type => FileSystemOperationType.EditDirectory;
         public override string FileName => _dir.Name;
         public override string FullPath => _dir.FullName;
         public DirectoryInfo Directory => _dir;

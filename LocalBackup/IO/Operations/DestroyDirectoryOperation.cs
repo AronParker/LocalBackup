@@ -12,7 +12,7 @@ namespace LocalBackup.IO.Operations
         }
 
         public override string Name => "Destroy directory";
-        public override FileSystemItemType Type => FileSystemItemType.DestroyDirectory;
+        public override FileSystemOperationType Type => FileSystemOperationType.DestroyDirectory;
         public override string FileName => _dir.Name;
         public override string FullPath => _dir.FullName;
         public DirectoryInfo Directory => _dir;

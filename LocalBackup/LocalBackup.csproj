@@ -68,10 +68,9 @@
     <Compile Include="IO\FileInfoEnumerableEventHandler.cs" />
     <Compile Include="IO\FileSystem.cs" />
     <Compile Include="IO\DirectoryMirrorer.cs" />
-    <Compile Include="IO\FileSystemItem.cs" />
-    <Compile Include="IO\FileSystemItemEventArgs.cs" />
-    <Compile Include="IO\FileSystemItemHandler.cs" />
-    <Compile Include="IO\FileSystemItemType.cs" />
+    <Compile Include="IO\FileSystemOperationEventArgs.cs" />
+    <Compile Include="IO\FileSystemOperationHandler.cs" />
+    <Compile Include="IO\FileSystemOperationType.cs" />
     <Compile Include="IO\Operations\FileSystemOperation.cs" />
     <Compile Include="IO\Operations\CopyFileOperation.cs" />
     <Compile Include="IO\Operations\CreateDirectoryOperation.cs" />

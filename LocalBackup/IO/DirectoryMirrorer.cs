@@ -27,7 +27,7 @@ namespace LocalBackup.IO
             _deleter = new DirectoryDeleter(this);
         }
 
-        public event FileSystemItemHandler ItemFound;
+        public event FileSystemOperationHandler OperationFound;
         public event ErrorEventHandler Error;
         
         public bool IsRunning => _task != null && !_task.IsCompleted;
@@ -56,9 +56,9 @@ namespace LocalBackup.IO
             return _task;
         }
 
-        protected virtual void OnItemFound(FileSystemItem item)
+        protected virtual void OnOperationFound(FileSystemOperation operation)
         {
-            ItemFound?.Invoke(this, new FileSystemItemEventArgs(item));
+            OperationFound?.Invoke(this, new FileSystemOperationEventArgs(operation));
         }
 
         protected virtual void OnError(Exception ex)
@@ -90,7 +90,7 @@ namespace LocalBackup.IO
                 _stack.RemoveRange(index, 2);
 
                 if (FileSystem.ClearArchiveAttribute(srcDir.Attributes) != FileSystem.ClearArchiveAttribute(dstDir.Attributes))
-                    OnItemFound(new EditDirectoryOperation(dstDir, srcDir.Attributes));
+                    OnOperationFound(new EditDirectoryOperation(dstDir, srcDir.Attributes));
 
                 PostDirectoryChanges(srcDir, dstDir, fileInfoComparer);
 
@@ -147,7 +147,7 @@ namespace LocalBackup.IO
             else
             {
                 if (srcFsi is FileInfo srcFile)
-                    OnItemFound(new CopyFileOperation(srcFile, new FileInfo(Path.Combine(dstDir.FullName, srcFile.Name))));
+                    OnOperationFound(new CopyFileOperation(srcFile, new FileInfo(Path.Combine(dstDir.FullName, srcFile.Name))));
                 else if (srcFsi is DirectoryInfo srcDir)
                     _copier.CopyDirectory(srcDir, new DirectoryInfo(Path.Combine(dstDir.FullName, srcDir.Name)));
             }
@@ -158,7 +158,7 @@ namespace LocalBackup.IO
             foreach (var dstFsi in _dstLookup.Values)
             {
                 if (dstFsi is FileInfo fileInDst)
-                    OnItemFound(new DeleteFileOperation(fileInDst));
+                    OnOperationFound(new DeleteFileOperation(fileInDst));
                 else if (dstFsi is DirectoryInfo dirInDst)
                     _deleter.DeleteDirectory(dirInDst);
             }
@@ -173,7 +173,7 @@ namespace LocalBackup.IO
                     try
                     {
                         if (!fileInfoComparer.Equals(srcFile, dstFile))
-                            OnItemFound(new EditFileOperation(srcFile, dstFile));
+                            OnOperationFound(new EditFileOperation(srcFile, dstFile));
                     }
                     catch (FileException ex)
                     {
@@ -183,14 +183,14 @@ namespace LocalBackup.IO
                 else if (dstFsi is DirectoryInfo dstDir)
                 {
                     _deleter.DeleteDirectory(dstDir);
-                    OnItemFound(new CopyFileOperation(srcFile, new FileInfo(dstFsi.FullName)));
+                    OnOperationFound(new CopyFileOperation(srcFile, new FileInfo(dstFsi.FullName)));
                 }
             }
             else if (srcFsi is DirectoryInfo srcDir)
             {
                 if (dstFsi is FileInfo dstFile)
                 {
-                    OnItemFound(new DeleteFileOperation(dstFile));
+                    OnOperationFound(new DeleteFileOperation(dstFile));
 
                     _copier.CopyDirectory(srcDir, new DirectoryInfo(dstFsi.FullName));
                 }
@@ -219,10 +219,10 @@ namespace LocalBackup.IO
                 _stack.Add(dstDir);
                 _stack.Add(srcDir);
 
-                _detector.OnItemFound(new CreateDirectoryOperation(dstDir));
+                _detector.OnOperationFound(new CreateDirectoryOperation(dstDir));
 
                 if (FileSystem.ClearArchiveAttribute(srcDir.Attributes) != FileAttributes.Directory)
-                    _detector.OnItemFound(new EditDirectoryOperation(dstDir, srcDir.Attributes));
+                    _detector.OnOperationFound(new EditDirectoryOperation(dstDir, srcDir.Attributes));
 
                 PostOperations();
             }
@@ -254,16 +254,16 @@ namespace LocalBackup.IO
                         if (srcFsi is FileInfo srcFile)
                         {
                             var dstFile = new FileInfo(Path.Combine(curDstDir.FullName, srcFsi.Name));
-                            _detector.OnItemFound(new CopyFileOperation(srcFile, dstFile));
+                            _detector.OnOperationFound(new CopyFileOperation(srcFile, dstFile));
                         }
                         else if (srcFsi is DirectoryInfo srcDir)
                         {
                             var dstDir = new DirectoryInfo(Path.Combine(curDstDir.FullName, srcFsi.Name));
 
-                            _detector.OnItemFound(new CreateDirectoryOperation(dstDir));
+                            _detector.OnOperationFound(new CreateDirectoryOperation(dstDir));
 
                             if (FileSystem.ClearArchiveAttribute(srcDir.Attributes) != FileAttributes.Directory)
-                                _detector.OnItemFound(new EditDirectoryOperation(dstDir, srcDir.Attributes));
+                                _detector.OnOperationFound(new EditDirectoryOperation(dstDir, srcDir.Attributes));
 
                             _stack.Add(srcDir);
                             _stack.Add(dstDir);
@@ -350,7 +350,7 @@ namespace LocalBackup.IO
                 for (var i = _operationsStack.Count-1; i >= 0; i--)
                 {
                     _detector._token.ThrowIfCancellationRequested();
-                    _detector.OnItemFound(_operationsStack[i]);
+                    _detector.OnOperationFound(_operationsStack[i]);
                 }
 
                 _operationsStack.Clear();

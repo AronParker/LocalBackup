@@ -14,7 +14,7 @@ namespace LocalBackup.IO.Operations
         }
 
         public override string Name => "Copy file";
-        public override FileSystemItemType Type => FileSystemItemType.CopyFile;
+        public override FileSystemOperationType Type => FileSystemOperationType.CopyFile;
         public override string FileName => _dstFile.Name;
         public override string FullPath => _dstFile.FullName;
         public override long Weight => SourceFile.Length / 4096 + 1;
