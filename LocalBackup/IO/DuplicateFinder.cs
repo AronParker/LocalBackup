@@ -1,11 +1,11 @@
-﻿using LocalBackup.Extensions;
-using LocalBackup.IO.FileComparers;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
+using LocalBackup.Extensions;
+using LocalBackup.IO.FileComparers;
 
 namespace LocalBackup.IO
 {
@@ -14,6 +14,11 @@ namespace LocalBackup.IO
         private List<FileInfo> _files = new List<FileInfo>();
         private CancellationToken _token;
         private Task _task;
+
+        public event FileInfoEventHandler FileAdded;
+        public event FileInfoEnumerableEventHandler FilesProcessed;
+        public event FileInfoEnumerableEventHandler DuplicateFound;
+        public event ErrorEventHandler Error;
 
         public bool IsRunning => _task != null && !_task.IsCompleted;
 
@@ -37,22 +42,22 @@ namespace LocalBackup.IO
 
         protected virtual void OnFileAdded(FileInfo file)
         {
+            FileAdded?.Invoke(this, new FileInfoEventArgs(file));
+        }
 
+        protected virtual void OnFileProcessed(IEnumerable<FileInfo> processed)
+        {
+            FilesProcessed?.Invoke(this, new FileInfoEnumerableEventArgs(processed));
         }
 
         protected virtual void OnDuplicateFound(IEnumerable<FileInfo> duplicates)
         {
-            
+            DuplicateFound?.Invoke(this, new FileInfoEnumerableEventArgs(duplicates));
         }
 
-        protected virtual void OnDirectoryError(DirectoryException ex)
+        protected virtual void OnError(Exception ex)
         {
-
-        }
-
-        protected virtual void OnFileError(FileException ex)
-        {
-
+            Error?.Invoke(this, new ErrorEventArgs(ex));
         }
 
         private void InternalStart(IEnumerable<DirectoryInfo> dirs, IFileInfoEqualityComparer fileComparer)
@@ -99,8 +104,10 @@ namespace LocalBackup.IO
             }
             catch (FileException ex)
             {
-                OnFileError(ex);
+                OnError(ex);
             }
+
+            MarkAsProcessed(start, length);
         }
 
         private void GroupEqualFileInfosAtTop(int start, int length, IFileInfoEqualityComparer fileInfoComparer)
@@ -133,10 +140,15 @@ namespace LocalBackup.IO
             OnDuplicateFound(CreateView(start, length));
         }
 
+        private void MarkAsProcessed(int start, int length)
+        {
+            OnFileProcessed(CreateView(start, length));
+        }
+
         private IEnumerable<FileInfo> CreateView(int start, int length)
         {
             var maxExclusive = start + length;
-
+            
             for (var i = start; i < maxExclusive; i++)
                 yield return _files[i];
         }
@@ -160,7 +172,7 @@ namespace LocalBackup.IO
 
                     if (dir == null)
                     {
-                        _df.OnDirectoryError(new DirectoryException(dir, new ArgumentNullException()));
+                        _df.OnError(new DirectoryException(dir, new ArgumentNullException()));
                         continue;
                     }
 
@@ -205,7 +217,7 @@ namespace LocalBackup.IO
                                            ex is UnauthorizedAccessException ||
                                            ex is SecurityException)
                 {
-                    _df.OnDirectoryError(new DirectoryException(curDir, ex));
+                    _df.OnError(new DirectoryException(curDir, ex));
                 }
             }
         }
@@ -264,7 +276,7 @@ namespace LocalBackup.IO
                     }
                     catch (FileException ex)
                     {
-                        _df.OnFileError(ex);
+                        _df.OnError(ex);
 
                         _fileStreams--;
                         _df._files.Swap(_start + i, _start + _fileStreams);
@@ -295,12 +307,12 @@ namespace LocalBackup.IO
                     }
                     catch (FileException ex) when (ex.File == f1)
                     {
-                        _df.OnFileError(ex);
+                        _df.OnError(ex);
                         break;
                     }
                     catch (FileException ex) when (ex.File == f2)
                     {
-                        _df.OnFileError(ex);
+                        _df.OnError(ex);
                         _fileStreams--;
 
                         if (j != _fileStreams)

@@ -62,8 +62,12 @@
     <Compile Include="IO\FileComparers\FileComparer.cs" />
     <Compile Include="IO\FileComparers\IFileInfoEqualityComparer.cs" />
     <Compile Include="IO\FileComparers\IFileEqualityComprarer.cs" />
+    <Compile Include="IO\FileInfoEventArgs.cs" />
+    <Compile Include="IO\FileInfoEventHandler.cs" />
     <Compile Include="IO\FileException.cs" />
     <Compile Include="IO\FileComparers\NTFSFileComparer.cs" />
+    <Compile Include="IO\FileInfoEnumerableEventArgs.cs" />
+    <Compile Include="IO\FileInfoEnumerableEventHandler.cs" />
     <Compile Include="IO\FileSystem.cs" />
     <Compile Include="IO\DirectoryMirrorer.cs" />
     <Compile Include="IO\Errors\FileSystemError.cs" />
