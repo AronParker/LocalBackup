@@ -11,8 +11,6 @@ namespace LocalBackup.IO
 {
     public class DirectoryMirrorer
     {
-        private const int BufferSize = 512 * 1024;
-
         private List<DirectoryInfo> _stack = new List<DirectoryInfo>();
         private Dictionary<string, FileSystemInfo> _dstLookup = new Dictionary<string, FileSystemInfo>(StringComparer.OrdinalIgnoreCase);
         private DirectoryCopier _copier;
