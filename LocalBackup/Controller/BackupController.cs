@@ -21,6 +21,7 @@ namespace LocalBackup.Controller
         private State _state;
 
         private DirectoryMirrorer _mirrorer;
+        private List<ListViewItem> _items;
         private Queue<object> _queue;
         private Stopwatch _sw;
 
@@ -37,8 +38,11 @@ namespace LocalBackup.Controller
             _mirrorer = new DirectoryMirrorer();
             _mirrorer.OperationFound += Mirrorer_OperationFound;
             _mirrorer.Error += Mirrorer_Error;
+            _items = new List<ListViewItem>();
             _queue = new Queue<object>();
             _sw = new Stopwatch();
+
+            _mainForm.DataSource = _items;
 
         }
 
@@ -47,12 +51,12 @@ namespace LocalBackup.Controller
             Application.Run(_mainForm);
         }
 
-        private void MainForm_OkButtonClick(object sender, EventArgs e)
+        private async void MainForm_OkButtonClick(object sender, EventArgs e)
         {
             switch (_state)
             {
                 case State.Idle:
-                    FindChanges();
+                    await FindChanges();
                     break;
                 case State.ReviewingChanges:
                     break;
@@ -61,7 +65,7 @@ namespace LocalBackup.Controller
             }
         }
 
-        private void FindChanges()
+        private async Task FindChanges()
         {
             var srcDir = FindSourceDirectory();
 
@@ -77,15 +81,31 @@ namespace LocalBackup.Controller
 
             if (fileInfoComparer == null)
                 return;
-
-            _state = State.FindingChanges;
-
+            
             _mainForm.Text = "Local Backup - Finding changes...";
             _mainForm.UpdateHeader(false);
-            _mainForm.UpdateFooter(_state);
+            _mainForm.UpdateFooter(_state = State.FindingChanges);
             
             _cts = new CancellationTokenSource();
-            _task = _mirrorer.RunAsync(srcDir, dstDir, fileInfoComparer);
+            _task = _mirrorer.RunAsync(srcDir, dstDir, fileInfoComparer, _cts.Token);
+
+            try
+            {
+                await _task;
+
+                if (_queue.Count > 0)
+                    AddItems(_queue);
+
+                _mainForm.Text = "Local Backup - Reviewing changes...";
+                _mainForm.UpdateFooter(_state = State.ReviewingChanges);
+            }
+            catch (OperationCanceledException)
+            {
+                _mainForm.UpdateFooter(_state = State.Done);
+            }
+            
+            _cts.Dispose();
+
         }
 
         private DirectoryInfo FindSourceDirectory()
@@ -129,7 +149,7 @@ namespace LocalBackup.Controller
 
             try
             {
-                dstDir = new DirectoryInfo(_mainForm.SourceDirectory);
+                dstDir = new DirectoryInfo(_mainForm.DestinationDirectory);
                 dstDir.Refresh();
             }
             catch (Exception ex) when (ex is ArgumentException ||
@@ -218,7 +238,30 @@ namespace LocalBackup.Controller
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
+
+            /*
+protected override void OnFormClosing(FormClosingEventArgs e)
+{
+    switch (_state)
+    {
+        case State.FindingChanges:
+        case State.PerformingChanges:
+            if (MessageBox.Show("Are you sure you want to cancel?", "Confirm Cancelation", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                break;
+
+            CancelGUI();
+            await _task;
+            Close();
+            goto case State.Canceling;
+        case State.Canceling:
+            e.Cancel = true;
+            break;
+    }
+
+    base.OnFormClosing(e);
+}
+*/
         }
 
         private void Mirrorer_Error(object sender, ErrorEventArgs e)
@@ -286,7 +329,11 @@ namespace LocalBackup.Controller
                         lvi.Tag = ex;
                         break;
                 }
+
+                _items.Add(lvi);
             }
+
+            _mainForm.RefreshDataSource();
         }
     }
 }
