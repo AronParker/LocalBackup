@@ -31,6 +31,9 @@
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this._footerPanel = new System.Windows.Forms.Panel();
+            this._progressBar = new System.Windows.Forms.ProgressBar();
+            this._cancelButton = new System.Windows.Forms.Button();
+            this._okButton = new System.Windows.Forms.Button();
             this._sourceLabel = new System.Windows.Forms.Label();
             this._destinationLabel = new System.Windows.Forms.Label();
             this._modeLabel = new System.Windows.Forms.Label();
@@ -45,9 +48,6 @@
             this.operationFileName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.operationFilePath = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.operationResult = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this._progressBar = new System.Windows.Forms.ProgressBar();
-            this._cancelButton = new System.Windows.Forms.Button();
-            this._okButton = new System.Windows.Forms.Button();
             this._operationsImageList = new System.Windows.Forms.ImageList(this.components);
             this._footerPanel.SuspendLayout();
             this.SuspendLayout();
@@ -63,6 +63,34 @@
             this._footerPanel.Name = "_footerPanel";
             this._footerPanel.Size = new System.Drawing.Size(784, 50);
             this._footerPanel.TabIndex = 10;
+            // 
+            // _progressBar
+            // 
+            this._progressBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this._progressBar.Location = new System.Drawing.Point(12, 12);
+            this._progressBar.Name = "_progressBar";
+            this._progressBar.Size = new System.Drawing.Size(508, 26);
+            this._progressBar.TabIndex = 2;
+            // 
+            // _cancelButton
+            // 
+            this._cancelButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this._cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+            this._cancelButton.Location = new System.Drawing.Point(652, 12);
+            this._cancelButton.Name = "_cancelButton";
+            this._cancelButton.Size = new System.Drawing.Size(120, 26);
+            this._cancelButton.TabIndex = 1;
+            this._cancelButton.UseVisualStyleBackColor = true;
+            // 
+            // _okButton
+            // 
+            this._okButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this._okButton.Location = new System.Drawing.Point(526, 12);
+            this._okButton.Name = "_okButton";
+            this._okButton.Size = new System.Drawing.Size(120, 26);
+            this._okButton.TabIndex = 0;
+            this._okButton.UseVisualStyleBackColor = true;
             // 
             // _sourceLabel
             // 
@@ -196,35 +224,6 @@
             // 
             this.operationResult.Text = "Result";
             this.operationResult.Width = 200;
-            // 
-            // _progressBar
-            // 
-            this._progressBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this._progressBar.Location = new System.Drawing.Point(12, 12);
-            this._progressBar.Maximum = 1000;
-            this._progressBar.Name = "_progressBar";
-            this._progressBar.Size = new System.Drawing.Size(508, 26);
-            this._progressBar.TabIndex = 2;
-            // 
-            // _cancelButton
-            // 
-            this._cancelButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this._cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this._cancelButton.Location = new System.Drawing.Point(652, 12);
-            this._cancelButton.Name = "_cancelButton";
-            this._cancelButton.Size = new System.Drawing.Size(120, 26);
-            this._cancelButton.TabIndex = 1;
-            this._cancelButton.UseVisualStyleBackColor = true;
-            // 
-            // _okButton
-            // 
-            this._okButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this._okButton.Location = new System.Drawing.Point(526, 12);
-            this._okButton.Name = "_okButton";
-            this._okButton.Size = new System.Drawing.Size(120, 26);
-            this._okButton.TabIndex = 0;
-            this._okButton.UseVisualStyleBackColor = true;
             // 
             // _operationsImageList
             // 

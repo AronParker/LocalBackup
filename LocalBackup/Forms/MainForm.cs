@@ -38,6 +38,36 @@ namespace LocalBackup.Forms
             remove => _cancelButton.Click -= value;
         }
 
+        public string SourceDirectory
+        {
+            get => _sourceTextBox.Text;
+            set => _sourceTextBox.Text = value;
+        }
+
+        public string DestinationDirectory
+        {
+            get => _destinationTextBox.Text;
+            set => _destinationTextBox.Text = value;
+        }
+
+        public bool QuickScan
+        {
+            get => _modeComboBox.SelectedIndex == 0;
+            set => _modeComboBox.SelectedIndex = value ? 0 : 1;
+        }
+
+        public bool ScrollToEnd
+        {
+            get => _autoScrollCheckBox.Checked;
+            set => _autoScrollCheckBox.Checked = value;
+        }
+
+        public int Progress
+        {
+            get => _progressBar.Value;
+            set => _progressBar.Value = value;
+        }
+
         public IReadOnlyList<ListViewItem> DataSource
         {
             get => _dataSource;
