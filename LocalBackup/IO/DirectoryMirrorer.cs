@@ -64,11 +64,11 @@ namespace LocalBackup.IO
             Error?.Invoke(this, new ErrorEventArgs(ex));
         }
 
-        private void InternalStart(DirectoryInfo curSrcDir, DirectoryInfo curDstDir, IFileInfoEqualityComparer fileInfoComparer)
+        private void InternalStart(DirectoryInfo srcDir, DirectoryInfo dstDir, IFileInfoEqualityComparer fileInfoComparer)
         {
             _stack.Clear();
-            _stack.Add(curDstDir);
-            _stack.Add(curSrcDir);
+            _stack.Add(dstDir);
+            _stack.Add(srcDir);
 
             PostOperations(fileInfoComparer);
 
