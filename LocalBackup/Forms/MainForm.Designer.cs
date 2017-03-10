@@ -144,8 +144,8 @@
             this._modeComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this._modeComboBox.FormattingEnabled = true;
             this._modeComboBox.Items.AddRange(new object[] {
-            "Normal",
-            "Paranoid"});
+            "Quick scan",
+            "Full scan"});
             this._modeComboBox.Location = new System.Drawing.Point(138, 71);
             this._modeComboBox.Name = "_modeComboBox";
             this._modeComboBox.Size = new System.Drawing.Size(528, 23);
@@ -259,7 +259,7 @@
             this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "MainForm";
-            this.Text = "MainForm";
+            this.Text = "Local Backup";
             this._footerPanel.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();

@@ -4,9 +4,12 @@ using System.IO;
 using System.Linq;
 using System.Security;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using LocalBackup.Forms;
+using LocalBackup.IO;
+using LocalBackup.IO.FileComparers;
 
 namespace LocalBackup.Controller
 {
@@ -15,12 +18,22 @@ namespace LocalBackup.Controller
         private MainForm _mainForm;
         private State _state;
 
+        private DirectoryMirrorer _mirrorer;
+        private List<object> _temp;
+
+        private CancellationTokenSource _cts;
+        private Task _task;
+
         public BackupController()
         {
             _mainForm = new MainForm();
             _mainForm.OkButtonClick += MainForm_OkButtonClick;
             _mainForm.CancelButtonClick += MainForm_CancelButtonClick;
             _mainForm.FormClosing += MainForm_FormClosing;
+
+            _mirrorer = new DirectoryMirrorer();
+            _mirrorer.OperationFound += Mirrorer_OperationFound;
+            _mirrorer.Error += Mirrorer_Error;
         }
 
         private void MainForm_OkButtonClick(object sender, EventArgs e)
@@ -49,7 +62,19 @@ namespace LocalBackup.Controller
             if (dstDir == null)
                 return;
 
+            var fileInfoComparer = FindFileInfoEqualityComparer(dstDir);
 
+            if (fileInfoComparer == null)
+                return;
+
+            _state = State.FindingChanges;
+
+            _mainForm.Text = "Local Backup - Finding changes...";
+            _mainForm.UpdateHeader(false);
+            _mainForm.UpdateFooter(_state);
+            
+            _cts = new CancellationTokenSource();
+            _task = _mirrorer.RunAsync(srcDir, dstDir, fileInfoComparer);
         }
 
         private DirectoryInfo FindSourceDirectory()
@@ -140,12 +165,57 @@ namespace LocalBackup.Controller
             return dstDir;
         }
 
+        private IFileInfoEqualityComparer FindFileInfoEqualityComparer(DirectoryInfo dstDir)
+        {
+            if (!_mainForm.QuickScan)
+                return new FileComparer();
+
+            try
+            {
+                var driveFormat = new DriveInfo(dstDir.FullName).DriveFormat;
+                
+                switch (driveFormat)
+                {
+                    case "FAT32":
+                    case "exFAT":
+                        return new FATFileComparer();
+                    case "NTFS":
+                        return new NTFSFileComparer();
+                    default:
+                        MessageBox.Show("Destination directory uses a file system where quick scan is not supported.",
+                                        "Quick scan not supported",
+                                        MessageBoxButtons.OK,
+                                        MessageBoxIcon.Error);
+                        return null;
+                }
+            }
+            catch (Exception ex) when (ex is IOException ||
+                                       ex is UnauthorizedAccessException)
+            {
+                MessageBox.Show("Failed to detect destination directory file system.",
+                                "Failed to detect file system", 
+                                MessageBoxButtons.OK, 
+                                MessageBoxIcon.Error);
+                return null;
+            }
+        }
+
         private void MainForm_CancelButtonClick(object sender, EventArgs e)
         {
             throw new NotImplementedException();
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void Mirrorer_Error(object sender, ErrorEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void Mirrorer_OperationFound(object sender, FileSystemOperationEventArgs e)
         {
             throw new NotImplementedException();
         }
