@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security;
@@ -10,6 +11,7 @@ using System.Windows.Forms;
 using LocalBackup.Forms;
 using LocalBackup.IO;
 using LocalBackup.IO.FileComparers;
+using LocalBackup.IO.Operations;
 
 namespace LocalBackup.Controller
 {
@@ -19,7 +21,8 @@ namespace LocalBackup.Controller
         private State _state;
 
         private DirectoryMirrorer _mirrorer;
-        private List<object> _temp;
+        private Queue<object> _queue;
+        private Stopwatch _sw;
 
         private CancellationTokenSource _cts;
         private Task _task;
@@ -34,6 +37,14 @@ namespace LocalBackup.Controller
             _mirrorer = new DirectoryMirrorer();
             _mirrorer.OperationFound += Mirrorer_OperationFound;
             _mirrorer.Error += Mirrorer_Error;
+            _queue = new Queue<object>();
+            _sw = new Stopwatch();
+
+        }
+
+        public void Run()
+        {
+            Application.Run(_mainForm);
         }
 
         private void MainForm_OkButtonClick(object sender, EventArgs e)
@@ -212,17 +223,70 @@ namespace LocalBackup.Controller
 
         private void Mirrorer_Error(object sender, ErrorEventArgs e)
         {
-            throw new NotImplementedException();
+            EnqueueItem(e.GetException());
         }
 
         private void Mirrorer_OperationFound(object sender, FileSystemOperationEventArgs e)
         {
-            throw new NotImplementedException();
+            EnqueueItem(e.Operation);
         }
 
-        public void Run()
+        private void EnqueueItem(object item)
         {
-            Application.Run(_mainForm);
+            _queue.Enqueue(item);
+
+            if (_sw.ElapsedMilliseconds <= 500)
+                return;
+
+            if (_mainForm.InvokeRequired)
+                _mainForm.Invoke((Action<Queue<object>>)AddItems, _queue);
+            else
+                AddItems(_queue);
+
+            _queue.Clear();
+        }
+
+        private void AddItems(Queue<object> items)
+        {
+            foreach (var item in items)
+            {
+                var lvi = (ListViewItem)null;
+
+                switch (item)
+                {
+                    case FileSystemOperation op:
+                        lvi = new ListViewItem(new string[] { op.Name, op.FileName, op.FilePath, string.Empty }, (int)op.Type);
+
+                        switch (op.Type)
+                        {
+                            case FileSystemOperationType.CreateDirectory:
+                            case FileSystemOperationType.CopyFile:
+                                lvi.BackColor = Colors.Green;
+                                break;
+                            case FileSystemOperationType.EditDirectory:
+                            case FileSystemOperationType.EditFile:
+                                lvi.BackColor = Colors.Yellow;
+                                break;
+                            case FileSystemOperationType.DestroyDirectory:
+                            case FileSystemOperationType.DeleteFile:
+                                lvi.BackColor = Colors.Red;
+                                break;
+                        }
+                        
+                        lvi.Tag = op;
+                        break;
+                    case FileException ex:
+                        lvi = new ListViewItem(new string[] { "File error", ex.File.Name, ex.File.FullName, ex.Message }, 6);
+                        lvi.BackColor = Colors.Red;
+                        lvi.Tag = ex;
+                        break;
+                    case DirectoryException ex:
+                        lvi = new ListViewItem(new string[] { "Directory error", ex.Directory.Name, ex.Directory.FullName, ex.Message }, 7);
+                        lvi.BackColor = Colors.Red;
+                        lvi.Tag = ex;
+                        break;
+                }
+            }
         }
     }
 }
