@@ -43,7 +43,7 @@ namespace LocalBackup.Controller
 
         private void Mirrorer_QueueFlushRequested(object sender, EventArgs e)
         {
-            throw new NotImplementedException();
+            FlushQueue();
         }
 
         public void Run()
@@ -51,19 +51,19 @@ namespace LocalBackup.Controller
             Application.Run(_view);
         }
 
-        public async Task FindChanges(string srcPath, string dstPath, bool quickScan)
+        public async Task FindChanges()
         {
-            var srcDir = FindSourceDirectory(srcPath);
+            var srcDir = FindSourceDirectory();
 
             if (srcDir == null)
                 return;
 
-            var dstDir = FindDestinationDirectory(dstPath);
+            var dstDir = FindDestinationDirectory();
 
             if (dstDir == null)
                 return;
 
-            var fileInfoComparer = FindFileInfoEqualityComparer(quickScan, dstDir);
+            var fileInfoComparer = FindFileInfoEqualityComparer(dstDir);
 
             if (fileInfoComparer == null)
                 return;
@@ -96,14 +96,13 @@ namespace LocalBackup.Controller
             }
         }
 
-        private DirectoryInfo FindSourceDirectory(string srcPath)
+        private DirectoryInfo FindSourceDirectory()
         {
             DirectoryInfo srcDir;
 
             try
             {
-                srcDir = new DirectoryInfo(srcPath);
-                srcDir.Refresh();
+                srcDir = new DirectoryInfo(_view.SourceDirectory);
             }
             catch (Exception ex) when (ex is ArgumentException ||
                                        ex is NotSupportedException ||
@@ -131,19 +130,16 @@ namespace LocalBackup.Controller
             return srcDir;
         }
 
-        private DirectoryInfo FindDestinationDirectory(string dstPath)
+        private DirectoryInfo FindDestinationDirectory()
         {
             DirectoryInfo dstDir;
 
             try
             {
-                dstDir = new DirectoryInfo(dstPath);
-                dstDir.Refresh();
+                dstDir = new DirectoryInfo(_view.DestinationDirectory);
             }
             catch (Exception ex) when (ex is ArgumentException ||
-                                       ex is NotSupportedException ||
-                                       ex is IOException ||
-                                       ex is UnauthorizedAccessException ||
+                                       ex is PathTooLongException ||
                                        ex is SecurityException)
 
             {
@@ -184,9 +180,9 @@ namespace LocalBackup.Controller
             return dstDir;
         }
 
-        private IFileInfoEqualityComparer FindFileInfoEqualityComparer(bool quickScan, DirectoryInfo dstDir)
+        private IFileInfoEqualityComparer FindFileInfoEqualityComparer(DirectoryInfo dstDir)
         {
-            if (!quickScan)
+            if (!_view.QuickScan)
                 return new FileComparer();
 
             try
@@ -287,7 +283,7 @@ namespace LocalBackup.Controller
             switch (_state)
             {
                 case BackupFormState.Idle:
-                    await FindChanges(_view.SourceDirectory,_view.DestinationDirectory, _view.QuickScan);
+                    await FindChanges();
                     break;
                 case BackupFormState.ReviewingChanges:
                     break;

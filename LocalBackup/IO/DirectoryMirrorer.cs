@@ -45,8 +45,6 @@ namespace LocalBackup.IO
                 throw new ArgumentNullException(nameof(fileInfoComparer));
             if (!srcDir.Exists)
                 throw new DirectoryNotFoundException("Source directory does not exist: " + srcDir.FullName + ".");
-            if (!dstDir.Exists)
-                throw new DirectoryNotFoundException("Destination directory does not exist: " + dstDir.FullName + ".");
             
             _token = token;
             _task = Task.Run(() => InternalStart(srcDir, dstDir, fileInfoComparer));
@@ -66,13 +64,20 @@ namespace LocalBackup.IO
 
         private void InternalStart(DirectoryInfo srcDir, DirectoryInfo dstDir, IFileInfoEqualityComparer fileInfoComparer)
         {
-            _stack.Clear();
-            _stack.Add(dstDir);
-            _stack.Add(srcDir);
+            if (dstDir.Exists)
+            {
+                _stack.Clear();
+                _stack.Add(dstDir);
+                _stack.Add(srcDir);
 
-            PostOperations(fileInfoComparer);
+                PostOperations(fileInfoComparer);
 
-            _dstLookup.Clear();
+                _dstLookup.Clear();
+            }
+            else
+            {
+                _copier.CopyDirectory(srcDir, dstDir);
+            }
         }
 
         private void PostOperations(IFileInfoEqualityComparer fileInfoComparer)
