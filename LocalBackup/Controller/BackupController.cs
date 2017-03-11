@@ -53,90 +53,16 @@ namespace LocalBackup.Controller
 
         public async Task FindChanges()
         {
-            DirectoryInfo srcDir, dstDir;
+            var findChangesHelper = new FindChangesHelper();
 
-            try
-            {
-                srcDir = new DirectoryInfo(_view.SourceDirectory);
-            }
-            catch (Exception ex) when (ex is ArgumentException ||
-                                       ex is PathTooLongException ||
-                                       ex is SecurityException)
-
-            {
-                MessageBox.Show("The source directory you specified is invalid: " + ex.Message,
-                                "Source directory invalid",
-                                MessageBoxButtons.OK,
-                                MessageBoxIcon.Error);
+            if (!findChangesHelper.SetSourceDirectory(_view.SourceDirectory))
                 return;
-            }
 
-            if (!srcDir.Exists)
-            {
-                MessageBox.Show("The source directory you specified does not exist.",
-                                "Source directory not found",
-                                MessageBoxButtons.OK,
-                                MessageBoxIcon.Error);
+            if (!findChangesHelper.SetDestinationDirectory(_view.DestinationDirectory))
                 return;
-            }
 
-            try
-            {
-                dstDir = new DirectoryInfo(_view.DestinationDirectory);
-            }
-            catch (Exception ex) when (ex is ArgumentException ||
-                                       ex is PathTooLongException ||
-                                       ex is SecurityException)
-
-            {
-                MessageBox.Show("The destination directory you specified is invalid: " + ex.Message,
-                                "Destination directory invalid",
-                                MessageBoxButtons.OK,
-                                MessageBoxIcon.Error);
+            if (!findChangesHelper.FindComparer(_view.QuickScan))
                 return;
-            }
-
-            IFileInfoEqualityComparer fileInfoComparer;
-
-            if (!_view.QuickScan)
-            {
-                fileInfoComparer = new FileComparer();
-            }
-            else
-            {
-                string driveFormat;
-
-                try
-                {
-                    driveFormat = new DriveInfo(dstDir.FullName).DriveFormat;
-                }
-                catch (Exception ex) when (ex is IOException ||
-                                           ex is UnauthorizedAccessException)
-                {
-                    MessageBox.Show("Failed to detect destination directory file system.",
-                                    "Failed to detect file system",
-                                    MessageBoxButtons.OK,
-                                    MessageBoxIcon.Error);
-                    return;
-                }
-
-                switch (driveFormat)
-                {
-                    case "FAT32":
-                    case "exFAT":
-                        fileInfoComparer = new FATFileComparer();
-                        break;
-                    case "NTFS":
-                        fileInfoComparer = new NTFSFileComparer();
-                        break;
-                    default:
-                        MessageBox.Show("Destination directory uses a file system where quick scan is not supported.",
-                                        "Unsupported file system",
-                                        MessageBoxButtons.OK,
-                                        MessageBoxIcon.Error);
-                        return;
-                }
-            }
 
             _state = BackupFormState.FindingChanges;
             _view.Text = "Local Backup - Finding changes...";
@@ -146,7 +72,10 @@ namespace LocalBackup.Controller
             {
                 try
                 {
-                    _task = _mirrorer.RunAsync(srcDir, dstDir, fileInfoComparer, _cts.Token);
+                    _task = _mirrorer.RunAsync(findChangesHelper.SourceDirectory,
+                                               findChangesHelper.DestinationDirectory,
+                                               findChangesHelper.FileInfoComparer,
+                                               _cts.Token);
 
                     await _task;
 
@@ -274,6 +203,121 @@ protected override void OnFormClosing(FormClosingEventArgs e)
     base.OnFormClosing(e);
 }
 */
+        }
+
+        private struct FindChangesHelper
+        {
+            public DirectoryInfo SourceDirectory { get; private set; }
+            public DirectoryInfo DestinationDirectory { get; private set; }
+            public IFileInfoEqualityComparer FileInfoComparer { get; private set; }
+
+            public bool SetSourceDirectory(string sourceDirectory)
+            {
+                try
+                {
+                    SourceDirectory = new DirectoryInfo(sourceDirectory);
+                }
+                catch (Exception ex) when (ex is ArgumentException ||
+                                           ex is PathTooLongException ||
+                                           ex is SecurityException)
+
+                {
+                    MessageBox.Show("The source directory you specified is invalid: " + ex.Message,
+                                    "Source directory invalid",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Error);
+                    return false;
+                }
+                
+                if (!SourceDirectory.Exists)
+                {
+                    MessageBox.Show("The source directory you specified does not exist.",
+                                    "Source directory not found",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Error);
+                    return false;
+                }
+
+                return true;
+            }
+
+            public bool SetDestinationDirectory(string destinationDirectory)
+            {
+                try
+                {
+                    DestinationDirectory = new DirectoryInfo(destinationDirectory);
+                    return true;
+                }
+                catch (Exception ex) when (ex is ArgumentException ||
+                                           ex is PathTooLongException ||
+                                           ex is SecurityException)
+
+                {
+                    MessageBox.Show("The destination directory you specified is invalid: " + ex.Message,
+                                    "Destination directory invalid",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Error);
+                    return false;
+                }
+            }
+
+            public bool FindComparer(bool quickScan)
+            {
+                if (quickScan)
+                {
+                    FileInfoComparer = new FileComparer();
+                    return true;
+                }
+
+                var fileSystem = GetDestinationFileSystem();
+
+                if (fileSystem == null)
+                    return false;
+
+                FileInfoComparer = CreateQuickScanComparere(fileSystem);
+
+                if (FileInfoComparer == null)
+                {
+                    MessageBox.Show("Destination directory uses a file system where quick scan is not supported.",
+                                    "Unsupported file system",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Error);
+                    return false;
+                }
+
+                return true;
+            }
+
+            private string GetDestinationFileSystem()
+            {
+                try
+                {
+                    return new DriveInfo(DestinationDirectory.FullName).DriveFormat;
+                }
+                catch (Exception ex) when (ex is IOException ||
+                                           ex is UnauthorizedAccessException)
+                {
+                    MessageBox.Show("Failed to detect destination directory file system.",
+                                    "Failed to detect file system",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Error);
+                    return null;
+                }
+            }
+
+            private IFileInfoEqualityComparer CreateQuickScanComparere(string fileSystem)
+            {
+                switch (fileSystem)
+                {
+                    case "FAT32":
+                    case "exFAT":
+                        return new FATFileComparer();
+                    case "NTFS":
+                        return new NTFSFileComparer();
+                    default:
+                        return null;
+                }
+            }
         }
     }
 }
