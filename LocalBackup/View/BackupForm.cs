@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using LocalBackup.Controller;
 
 namespace LocalBackup.View
 {
@@ -13,7 +14,7 @@ namespace LocalBackup.View
             InitializeComponent();
 
             _modeComboBox.SelectedIndex = 0;
-            SetState(BackupFormState.Idle);
+            ApplyState(BackupFormState.Idle);
         }
 
         public event EventHandler OkButtonClick
@@ -78,7 +79,7 @@ namespace LocalBackup.View
                 _operationsListViewEx.Refresh();
         }
 
-        public void SetState(BackupFormState state)
+        public void ApplyState(BackupFormState state)
         {
             if (state < BackupFormState.Idle || state > BackupFormState.Canceling)
                 throw new ArgumentOutOfRangeException(nameof(state));

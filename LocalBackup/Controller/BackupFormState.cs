@@ -1,4 +1,4 @@
-﻿namespace LocalBackup.Model
+﻿namespace LocalBackup.Controller
 {
     public enum BackupFormState
     {

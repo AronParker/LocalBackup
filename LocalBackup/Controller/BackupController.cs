@@ -1,30 +1,49 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Security;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
-using LocalBackup.View;
 using LocalBackup.IO;
+using LocalBackup.IO.FileComparers;
 using LocalBackup.IO.Operations;
-using LocalBackup.Model;
+using LocalBackup.View;
 
 namespace LocalBackup.Controller
 {
     public class BackupController
     {
-        private BackupModel _model;
+        private List<ListViewItem> _items;
+        private BackupFormState _state;
         private BackupForm _view;
-        
+
+        private BufferedDirectoryMirrorer _mirrorer;
+
+        private CancellationTokenSource _cts;
+        private Task _task;
+
         public BackupController()
         {
-            _model = new BackupModel();
-            _model.TitleChanged += Model_TitleChanged;
-            _model.StateChanged += Model_StateChanged;
-            _model.QueueFlushRequested += Model_QueueFlushRequested;
+            _items = new List<ListViewItem>();
+            _state = BackupFormState.Idle;
 
             _view = new BackupForm();
             _view.OkButtonClick += View_OkButtonClick;
             _view.CancelButtonClick += View_CancelButtonClick;
             _view.FormClosing += View_FormClosing;
-            _view.DataSource = _model.Items;
+            _view.DataSource = _items;
+
+            _mirrorer = new BufferedDirectoryMirrorer();
+            _mirrorer.QueueFlushRequested += Mirrorer_QueueFlushRequested;
+
+
+        }
+
+        private void Mirrorer_QueueFlushRequested(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
         }
 
         public void Run()
@@ -32,29 +51,179 @@ namespace LocalBackup.Controller
             Application.Run(_view);
         }
 
-        private void Model_TitleChanged(object sender, EventArgs e)
+        public async Task FindChanges(string srcPath, string dstPath, bool quickScan)
         {
-            _view.Text = _model.Title;
+            var srcDir = FindSourceDirectory(srcPath);
+
+            if (srcDir == null)
+                return;
+
+            var dstDir = FindDestinationDirectory(dstPath);
+
+            if (dstDir == null)
+                return;
+
+            var fileInfoComparer = FindFileInfoEqualityComparer(quickScan, dstDir);
+
+            if (fileInfoComparer == null)
+                return;
+
+            _state = BackupFormState.FindingChanges;
+            _view.Text = "Local Backup - Finding changes...";
+            _view.ApplyState(BackupFormState.FindingChanges);
+
+            using (_cts = new CancellationTokenSource())
+            {
+                try
+                {
+                    _task = _mirrorer.RunAsync(srcDir, dstDir, fileInfoComparer, _cts.Token);
+
+                    await _task;
+
+                    if (_mirrorer.ProcessingQueue.Count > 0)
+                        FlushQueue();
+
+                    _state = BackupFormState.ReviewingChanges;
+                    _view.Text = "Local Backup - Reviewing changes...";
+                    _view.ApplyState(BackupFormState.ReviewingChanges);
+                }
+                catch (OperationCanceledException)
+                {
+                    _state = BackupFormState.Done;
+                    _view.Text = "Backup Utility - Canceled";
+                    _view.ApplyState(BackupFormState.Done);
+                }
+            }
         }
 
-        private void Model_StateChanged(object sender, EventArgs e)
+        private DirectoryInfo FindSourceDirectory(string srcPath)
         {
-            _view.SetState(_model.State);
+            DirectoryInfo srcDir;
+
+            try
+            {
+                srcDir = new DirectoryInfo(srcPath);
+                srcDir.Refresh();
+            }
+            catch (Exception ex) when (ex is ArgumentException ||
+                                       ex is NotSupportedException ||
+                                       ex is IOException ||
+                                       ex is UnauthorizedAccessException ||
+                                       ex is SecurityException)
+
+            {
+                MessageBox.Show("The source directory you specified is invalid: " + ex.Message,
+                                "Source directory invalid",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Error);
+                return null;
+            }
+
+            if (!srcDir.Exists)
+            {
+                MessageBox.Show("The source directory you specified does not exist.",
+                                "Source directory not found",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Error);
+                return null;
+            }
+
+            return srcDir;
         }
 
-        private void Model_QueueFlushRequested(object sender, EventArgs e)
+        private DirectoryInfo FindDestinationDirectory(string dstPath)
         {
-            if (_view.InvokeRequired)
-                _view.Invoke((MethodInvoker)FlushQueue);
-            else
-                FlushQueue();
+            DirectoryInfo dstDir;
+
+            try
+            {
+                dstDir = new DirectoryInfo(dstPath);
+                dstDir.Refresh();
+            }
+            catch (Exception ex) when (ex is ArgumentException ||
+                                       ex is NotSupportedException ||
+                                       ex is IOException ||
+                                       ex is UnauthorizedAccessException ||
+                                       ex is SecurityException)
+
+            {
+                MessageBox.Show("The destination directory you specified is invalid: " + ex.Message,
+                                "Destination directory invalid",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Error);
+                return null;
+            }
+
+            if (!dstDir.Exists)
+            {
+                if (MessageBox.Show("The destination directory you specified does not exist. Would you like to create it?",
+                                    "Destination directory not found",
+                                    MessageBoxButtons.YesNo,
+                                    MessageBoxIcon.Warning) != DialogResult.Yes)
+                {
+                    return null;
+                }
+
+                try
+                {
+                    dstDir.Create();
+                    dstDir.Refresh(); // fill file attributes so no exception can be triggered later on
+                }
+                catch (Exception ex) when (ex is IOException ||
+                                           ex is UnauthorizedAccessException ||
+                                           ex is SecurityException)
+                {
+                    MessageBox.Show("Failed to create destination directory: " + ex.Message,
+                                    "Failed to create destination directory",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Error);
+                    return null;
+                }
+            }
+
+            return dstDir;
+        }
+
+        private IFileInfoEqualityComparer FindFileInfoEqualityComparer(bool quickScan, DirectoryInfo dstDir)
+        {
+            if (!quickScan)
+                return new FileComparer();
+
+            try
+            {
+                var driveFormat = new DriveInfo(dstDir.FullName).DriveFormat;
+
+                switch (driveFormat)
+                {
+                    case "FAT32":
+                    case "exFAT":
+                        return new FATFileComparer();
+                    case "NTFS":
+                        return new NTFSFileComparer();
+                    default:
+                        MessageBox.Show("Destination directory uses a file system where quick scan is not supported.",
+                                        "Unsupported file system",
+                                        MessageBoxButtons.OK,
+                                        MessageBoxIcon.Error);
+                        return null;
+                }
+            }
+            catch (Exception ex) when (ex is IOException ||
+                                       ex is UnauthorizedAccessException)
+            {
+                MessageBox.Show("Failed to detect destination directory file system.",
+                                "Failed to detect file system",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Error);
+                return null;
+            }
         }
 
         private void FlushQueue()
         {
-            Debug.Assert(_model.ProcessingQueue.Count > 0);
+            Debug.Assert(_mirrorer.ProcessingQueue.Count > 0);
 
-            foreach (var item in _model.ProcessingQueue)
+            foreach (var item in _mirrorer.ProcessingQueue)
             {
                 ListViewItem lvi;
 
@@ -98,19 +267,27 @@ namespace LocalBackup.Controller
                         throw new NotSupportedException();
                 }
 
-                _model.Items.Add(lvi);
+                _items.Add(lvi);
             }
 
-            _model.ProcessingQueue.Clear();
+            _mirrorer.ProcessingQueue.Clear();
             _view.RefreshDataSource();
+        }
+
+        private void Model_QueueFlushRequested(object sender, EventArgs e)
+        {
+            if (_view.InvokeRequired)
+                _view.Invoke((MethodInvoker)FlushQueue);
+            else
+                FlushQueue();
         }
 
         private async void View_OkButtonClick(object sender, EventArgs e)
         {
-            switch (_model.State)
+            switch (_state)
             {
                 case BackupFormState.Idle:
-                    await _model.FindChanges(_view.SourceDirectory,_view.DestinationDirectory, _view.QuickScan);
+                    await FindChanges(_view.SourceDirectory,_view.DestinationDirectory, _view.QuickScan);
                     break;
                 case BackupFormState.ReviewingChanges:
                     break;

@@ -53,15 +53,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Controller\BackupController.cs" />
-    <Compile Include="Model\BackupFormState.cs" />
-    <Compile Include="Model\BackupModel.cs" />
+    <Compile Include="Controller\BackupFormState.cs" />
     <Compile Include="Controls\ListViewEx.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Extensions\IListEx.cs" />
     <Compile Include="Extensions\StreamEx.cs" />
     <Compile Include="Controller\Colors.cs" />
-    <Compile Include="Model\BufferedDirectoryMirrorer.cs" />
+    <Compile Include="Controller\BufferedDirectoryMirrorer.cs" />
     <Compile Include="View\BackupForm.cs">
       <SubType>Form</SubType>
     </Compile>

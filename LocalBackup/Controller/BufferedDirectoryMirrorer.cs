@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using LocalBackup.IO;
 using LocalBackup.IO.Operations;
 
-namespace LocalBackup.Model
+namespace LocalBackup.Controller
 {
     public class BufferedDirectoryMirrorer : DirectoryMirrorer
     {
