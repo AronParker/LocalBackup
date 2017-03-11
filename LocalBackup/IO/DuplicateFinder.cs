@@ -14,13 +14,26 @@ namespace LocalBackup.IO
         private List<FileInfo> _files = new List<FileInfo>();
         private CancellationToken _token;
         private Task _task;
+        private int _state;
 
+        public event EventHandler StateChanged;
         public event FileInfoEventHandler FileAdded;
         public event FileInfoEnumerableEventHandler FilesProcessed;
         public event FileInfoEnumerableEventHandler DuplicateFound;
         public event ErrorEventHandler Error;
 
         public bool IsRunning => _task != null && !_task.IsCompleted;
+
+        public DuplicateFinderState State
+        {
+            get => (DuplicateFinderState)Volatile.Read(ref _state);
+            set
+            {
+                Volatile.Write(ref _state, (int)value);
+
+                StateChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
 
         public Task RunAsync(IEnumerable<DirectoryInfo> dirs, IFileInfoEqualityComparer fileInfoComparer)
         {
@@ -33,7 +46,7 @@ namespace LocalBackup.IO
                 throw new ArgumentNullException(nameof(dirs));
             if (fileInfoComparer == null)
                 throw new ArgumentNullException(nameof(fileInfoComparer));
-
+            
             _token = token;
             _task = Task.Run(() => InternalStart(dirs, fileInfoComparer));
 
@@ -62,9 +75,21 @@ namespace LocalBackup.IO
 
         private void InternalStart(IEnumerable<DirectoryInfo> dirs, IFileInfoEqualityComparer fileComparer)
         {
-            new FileInfoEnumerator(this).AddDirectories(dirs);
-            _files.Sort((x, y) => y.Length.CompareTo(x.Length));
-            FindDuplicates(fileComparer);
+            try
+            {
+                State = DuplicateFinderState.FindingDuplicates;
+                new FileInfoEnumerator(this).AddDirectories(dirs);
+
+                State = DuplicateFinderState.SortingFiles;
+                _files.Sort((x, y) => y.Length.CompareTo(x.Length));
+
+                State = DuplicateFinderState.FindingDuplicates;
+                FindDuplicates(fileComparer);
+            }
+            finally
+            {
+                State = DuplicateFinderState.Idle;
+            }
         }
 
         private void FindDuplicates(IFileInfoEqualityComparer fileComparer)
