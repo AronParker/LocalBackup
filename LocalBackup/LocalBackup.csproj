@@ -61,6 +61,7 @@
     <Compile Include="Extensions\StreamEx.cs" />
     <Compile Include="Controller\Colors.cs" />
     <Compile Include="Controller\BufferedDirectoryMirrorer.cs" />
+    <Compile Include="IO\DuplicateFinderState.cs" />
     <Compile Include="View\BackupForm.cs">
       <SubType>Form</SubType>
     </Compile>

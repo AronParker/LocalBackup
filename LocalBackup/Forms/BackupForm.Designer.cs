@@ -1,4 +1,4 @@
-﻿namespace LocalBackup.View
+﻿namespace LocalBackup.Forms
 {
     partial class BackupForm
     {

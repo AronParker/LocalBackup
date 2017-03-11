@@ -6,6 +6,7 @@ using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using LocalBackup.Forms;
 using LocalBackup.IO;
 using LocalBackup.IO.FileComparers;
 using LocalBackup.IO.Operations;
@@ -17,7 +18,7 @@ namespace LocalBackup.Controller
     {
         private List<ListViewItem> _items;
         private BackupFormState _state;
-        private BackupForm _view;
+        private BackupForm _mainForm;
 
         private BufferedDirectoryMirrorer _mirrorer;
 
@@ -29,11 +30,11 @@ namespace LocalBackup.Controller
             _items = new List<ListViewItem>();
             _state = BackupFormState.Idle;
 
-            _view = new BackupForm();
-            _view.OkButtonClick += View_OkButtonClick;
-            _view.CancelButtonClick += View_CancelButtonClick;
-            _view.FormClosing += View_FormClosing;
-            _view.DataSource = _items;
+            _mainForm = new BackupForm();
+            _mainForm.OkButtonClick += MainForm_OkButtonClick;
+            _mainForm.CancelButtonClick += MainForm_CancelButtonClick;
+            _mainForm.FormClosing += MainForm_FormClosing;
+            _mainForm.DataSource = _items;
 
             _mirrorer = new BufferedDirectoryMirrorer();
             _mirrorer.QueueFlushRequested += Mirrorer_QueueFlushRequested;
@@ -41,37 +42,29 @@ namespace LocalBackup.Controller
 
         }
 
-        private void Mirrorer_QueueFlushRequested(object sender, EventArgs e)
-        {
-            FlushQueue();
-        }
-
         public void Run()
         {
-            Application.Run(_view);
+            Application.Run(_mainForm);
         }
 
         public async Task FindChanges()
         {
             var findChangesHelper = new FindChangesHelper();
 
-            if (!findChangesHelper.SetSourceDirectory(_view.SourceDirectory))
+            if (!findChangesHelper.SetSourceDirectory(_mainForm.SourceDirectory))
                 return;
 
-            if (!findChangesHelper.SetDestinationDirectory(_view.DestinationDirectory))
+            if (!findChangesHelper.SetDestinationDirectory(_mainForm.DestinationDirectory))
                 return;
 
-            if (!findChangesHelper.FindComparer(_view.QuickScan))
+            if (!findChangesHelper.FindComparer(_mainForm.QuickScan))
                 return;
-
-            _state = BackupFormState.FindingChanges;
-            _view.Text = "Local Backup - Finding changes...";
-            _view.ApplyState(BackupFormState.FindingChanges);
 
             using (_cts = new CancellationTokenSource())
             {
                 try
                 {
+                    ChangeTitleAndState("Local Backup - Finding changes...", BackupFormState.FindingChanges);
                     _task = _mirrorer.RunAsync(findChangesHelper.SourceDirectory,
                                                findChangesHelper.DestinationDirectory,
                                                findChangesHelper.FileInfoComparer,
@@ -82,17 +75,20 @@ namespace LocalBackup.Controller
                     if (_mirrorer.ProcessingQueue.Count > 0)
                         FlushQueue();
 
-                    _state = BackupFormState.ReviewingChanges;
-                    _view.Text = "Local Backup - Reviewing changes...";
-                    _view.ApplyState(BackupFormState.ReviewingChanges);
+                    ChangeTitleAndState("Local Backup - Reviewing changes...", BackupFormState.ReviewingChanges);
                 }
                 catch (OperationCanceledException)
                 {
-                    _state = BackupFormState.Done;
-                    _view.Text = "Backup Utility - Canceled";
-                    _view.ApplyState(BackupFormState.Done);
+                    ChangeTitleAndState("Backup Utility - Canceled", BackupFormState.Done);
                 }
             }
+        }
+
+        private void ChangeTitleAndState(string title, BackupFormState state)
+        {
+            _state = state;
+            _mainForm.Text = title;
+            _mainForm.ApplyState(state);
         }
 
         private void FlushQueue()
@@ -147,18 +143,10 @@ namespace LocalBackup.Controller
             }
 
             _mirrorer.ProcessingQueue.Clear();
-            _view.RefreshDataSource();
+            _mainForm.RefreshDataSource();
         }
 
-        private void Model_QueueFlushRequested(object sender, EventArgs e)
-        {
-            if (_view.InvokeRequired)
-                _view.Invoke((MethodInvoker)FlushQueue);
-            else
-                FlushQueue();
-        }
-
-        private async void View_OkButtonClick(object sender, EventArgs e)
+        private async void MainForm_OkButtonClick(object sender, EventArgs e)
         {
             switch (_state)
             {
@@ -172,12 +160,12 @@ namespace LocalBackup.Controller
             }
         }
         
-        private void View_CancelButtonClick(object sender, EventArgs e)
+        private void MainForm_CancelButtonClick(object sender, EventArgs e)
         {
 
         }
 
-        private void View_FormClosing(object sender, FormClosingEventArgs e)
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             //throw new NotImplementedException();
 
@@ -203,6 +191,14 @@ protected override void OnFormClosing(FormClosingEventArgs e)
     base.OnFormClosing(e);
 }
 */
+        }
+
+        private void Mirrorer_QueueFlushRequested(object sender, EventArgs e)
+        {
+            if (_mainForm.InvokeRequired)
+                _mainForm.Invoke((MethodInvoker)FlushQueue);
+            else
+                FlushQueue();
         }
 
         private struct FindChangesHelper

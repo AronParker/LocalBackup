@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Windows.Forms;
 using LocalBackup.Controller;
 
-namespace LocalBackup.View
+namespace LocalBackup.Forms
 {
     public partial class BackupForm : Form
     {
