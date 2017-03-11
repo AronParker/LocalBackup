@@ -1,9 +1,5 @@
-﻿using LocalBackup.IO;
-using LocalBackup.IO.FileComparers;
-using System;
-using System.IO;
+﻿using System;
 using System.Windows.Forms;
-using LocalBackup.Forms;
 using LocalBackup.Controller;
 
 namespace LocalBackup

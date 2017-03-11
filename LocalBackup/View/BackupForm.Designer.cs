@@ -1,6 +1,6 @@
-﻿namespace LocalBackup.Forms
+﻿namespace LocalBackup.View
 {
-    partial class MainForm
+    partial class BackupForm
     {
         /// <summary>
         /// Required designer variable.
@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(BackupForm));
             this._footerPanel = new System.Windows.Forms.Panel();
             this._progressBar = new System.Windows.Forms.ProgressBar();
             this._cancelButton = new System.Windows.Forms.Button();
@@ -127,6 +127,7 @@
             this._sourceTextBox.Name = "_sourceTextBox";
             this._sourceTextBox.Size = new System.Drawing.Size(528, 23);
             this._sourceTextBox.TabIndex = 3;
+            this._sourceTextBox.Text = "C:\\Users\\Aron\\Desktop\\1";
             // 
             // _destinationTextBox
             // 
@@ -136,6 +137,7 @@
             this._destinationTextBox.Name = "_destinationTextBox";
             this._destinationTextBox.Size = new System.Drawing.Size(528, 23);
             this._destinationTextBox.TabIndex = 4;
+            this._destinationTextBox.Text = "C:\\Users\\Aron\\Desktop\\2";
             // 
             // _modeComboBox
             // 

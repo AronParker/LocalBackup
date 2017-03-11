@@ -53,18 +53,20 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Controller\BackupController.cs" />
-    <Compile Include="Controller\State.cs" />
+    <Compile Include="Model\BackupFormState.cs" />
+    <Compile Include="Model\BackupModel.cs" />
     <Compile Include="Controls\ListViewEx.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Extensions\IListEx.cs" />
     <Compile Include="Extensions\StreamEx.cs" />
     <Compile Include="Controller\Colors.cs" />
-    <Compile Include="Forms\MainForm.cs">
+    <Compile Include="Model\BufferedDirectoryMirrorer.cs" />
+    <Compile Include="View\BackupForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Forms\MainForm.Designer.cs">
-      <DependentUpon>MainForm.cs</DependentUpon>
+    <Compile Include="View\BackupForm.Designer.cs">
+      <DependentUpon>BackupForm.cs</DependentUpon>
     </Compile>
     <Compile Include="IO\DirectoryException.cs" />
     <Compile Include="IO\DuplicateFinder.cs" />
@@ -93,8 +95,8 @@
     <Compile Include="NativeMethods.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="Forms\MainForm.resx">
-      <DependentUpon>MainForm.cs</DependentUpon>
+    <EmbeddedResource Include="View\BackupForm.resx">
+      <DependentUpon>BackupForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

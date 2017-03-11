@@ -1,29 +1,19 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using LocalBackup.Controller;
-using LocalBackup.IO;
-using LocalBackup.IO.Operations;
 
-namespace LocalBackup.Forms
+namespace LocalBackup.View
 {
-    public partial class MainForm : Form
+    public partial class BackupForm : Form
     {
         private IReadOnlyList<ListViewItem> _dataSource;
 
-        public MainForm()
+        public BackupForm()
         {
             InitializeComponent();
 
             _modeComboBox.SelectedIndex = 0;
+            SetState(BackupFormState.Idle);
         }
 
         public event EventHandler OkButtonClick
@@ -56,7 +46,7 @@ namespace LocalBackup.Forms
             set => _modeComboBox.SelectedIndex = value ? 0 : 1;
         }
 
-        public bool ScrollToEnd
+        public bool ScrollToLastOperation
         {
             get => _autoScrollCheckBox.Checked;
             set => _autoScrollCheckBox.Checked = value;
@@ -76,6 +66,86 @@ namespace LocalBackup.Forms
                 _dataSource = value;
                 RefreshDataSource();
             }
+        }
+
+        public void RefreshDataSource()
+        {
+            if (_dataSource == null)
+                _operationsListViewEx.VirtualListSize = 0;
+            else if (_operationsListViewEx.VirtualListSize != _dataSource.Count)
+                _operationsListViewEx.VirtualListSize = _dataSource.Count;
+            else
+                _operationsListViewEx.Refresh();
+        }
+
+        public void SetState(BackupFormState state)
+        {
+            if (state < BackupFormState.Idle || state > BackupFormState.Canceling)
+                throw new ArgumentOutOfRangeException(nameof(state));
+
+            switch (state)
+            {
+                case BackupFormState.Idle:
+                    UpdateHeader(true);
+                    _progressBar.Style = ProgressBarStyle.Continuous;
+                    _okButton.Enabled = true;
+                    _okButton.Text = "Start";
+                    _cancelButton.Enabled = true;
+                    _cancelButton.Text = "Close";
+                    break;
+                case BackupFormState.FindingChanges:
+                    UpdateHeader(false);
+                    _progressBar.Style = ProgressBarStyle.Marquee;
+                    _okButton.Enabled = false;
+                    _okButton.Text = "Finding changes...";
+                    _cancelButton.Enabled = true;
+                    _cancelButton.Text = "Cancel";
+                    break;
+                case BackupFormState.ReviewingChanges:
+                    UpdateHeader(false);
+                    _progressBar.Style = ProgressBarStyle.Continuous;
+                    _okButton.Enabled = true;
+                    _okButton.Text = "Perform changes";
+                    _cancelButton.Enabled = true;
+                    _cancelButton.Text = "Discard changes";
+                    break;
+                case BackupFormState.PerformingChanges:
+                    UpdateHeader(false);
+                    _progressBar.Style = ProgressBarStyle.Continuous;
+                    _okButton.Enabled = false;
+                    _okButton.Text = "Performing changes...";
+                    _cancelButton.Enabled = true;
+                    _cancelButton.Text = "Cancel";
+                    break;
+                case BackupFormState.Done:
+                    UpdateHeader(false);
+                    _progressBar.Style = ProgressBarStyle.Continuous;
+                    _okButton.Enabled = true;
+                    _okButton.Text = "Start new backup";
+                    _cancelButton.Enabled = true;
+                    _cancelButton.Text = "Close";
+                    break;
+                case BackupFormState.Canceling:
+                    UpdateHeader(false);
+                    _progressBar.Style = ProgressBarStyle.Marquee;
+                    _okButton.Enabled = false;
+                    _okButton.Text = "Please wait...";
+                    _cancelButton.Enabled = false;
+                    _cancelButton.Text = "Canceling...";
+                    break;
+            }
+        }
+
+        private void UpdateHeader(bool enabled)
+        {
+            _sourceLabel.Enabled = enabled;
+            _sourceTextBox.Enabled = enabled;
+            _sourceButton.Enabled = enabled;
+            _destinationLabel.Enabled = enabled;
+            _destinationTextBox.Enabled = enabled;
+            _destinationButton.Enabled = enabled;
+            _modeLabel.Enabled = enabled;
+            _modeComboBox.Enabled = enabled;
         }
 
         private void Browse_Click(object sender, EventArgs e)
@@ -108,77 +178,6 @@ namespace LocalBackup.Forms
         private void OperationsListView_RetrieveVirtualItem(object sender, RetrieveVirtualItemEventArgs e)
         {
             e.Item = DataSource[e.ItemIndex];
-        }
-
-        public void RefreshDataSource()
-        {
-            if (_dataSource == null)
-                _operationsListViewEx.VirtualListSize = 0;
-            else if (_operationsListViewEx.VirtualListSize != _dataSource.Count)
-                _operationsListViewEx.VirtualListSize = _dataSource.Count;
-            else
-                _operationsListViewEx.Refresh();
-        }
-
-        public void UpdateHeader(bool enabled)
-        {
-            _sourceLabel.Enabled = enabled;
-            _sourceTextBox.Enabled = enabled;
-            _sourceButton.Enabled = enabled;
-            _destinationLabel.Enabled = enabled;
-            _destinationTextBox.Enabled = enabled;
-            _destinationButton.Enabled = enabled;
-            _modeLabel.Enabled = enabled;
-            _modeComboBox.Enabled = enabled;
-        }
-
-        public void UpdateFooter(State state)
-        {
-            switch (state)
-            {
-                case State.Idle:
-                    _progressBar.Style = ProgressBarStyle.Continuous;
-                    _okButton.Enabled = true;
-                    _okButton.Text = "Start";
-                    _cancelButton.Enabled = true;
-                    _cancelButton.Text = "Close";
-                    break;
-                case State.FindingChanges:
-                    _progressBar.Style = ProgressBarStyle.Marquee;
-                    _okButton.Enabled = false;
-                    _okButton.Text = "Finding changes...";
-                    _cancelButton.Enabled = true;
-                    _cancelButton.Text = "Cancel";
-                    break;
-                case State.ReviewingChanges:
-                    _progressBar.Style = ProgressBarStyle.Continuous;
-                    _okButton.Enabled = true;
-                    _okButton.Text = "Perform changes";
-                    _cancelButton.Enabled = true;
-                    _cancelButton.Text = "Discard changes";
-                    break;
-                case State.PerformingChanges:
-                    _progressBar.Style = ProgressBarStyle.Continuous;
-                    _okButton.Enabled = false;
-                    _okButton.Text = "Performing changes...";
-                    _cancelButton.Enabled = true;
-                    _cancelButton.Text = "Cancel";
-                    break;
-                case State.Done:
-                    _progressBar.Style = ProgressBarStyle.Continuous;
-                    _okButton.Enabled = true;
-                    _okButton.Text = "Start new backup";
-                    _cancelButton.Enabled = true;
-                    _cancelButton.Text = "Close";
-                    break;
-                case State.Canceling:
-                    _progressBar.Style = ProgressBarStyle.Marquee;
-                    _okButton.Enabled = false;
-                    _okButton.Text = "Please wait...";
-                    _cancelButton.Enabled = false;
-                    _cancelButton.Text = "Canceling...";
-                    break;
-            }
         }
     }
 }
