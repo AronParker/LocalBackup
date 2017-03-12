@@ -38,8 +38,8 @@ namespace LocalBackup.Forms
             FindingChanges,
             ReviewChanges,
             PerformingChanges,
-            Done,
             Canceling,
+            Done,
         }
 
         protected override async void OnFormClosing(FormClosingEventArgs e)
@@ -68,11 +68,6 @@ namespace LocalBackup.Forms
             }
         }
 
-        private void SetTitle(string title)
-        {
-            Text = title;
-        }
-
         private void SetState(BackupFormState state)
         {
             _state = state;
@@ -81,15 +76,25 @@ namespace LocalBackup.Forms
             switch (state)
             {
                 case BackupFormState.Idle:
+                    Text = "Local Backup";
+                    
                     UpdateHeader(true);
+
+                    _operationsListViewEx.VirtualListSize = 0;
+                    _items.Clear();
+
                     _progressBar.Style = ProgressBarStyle.Continuous;
+                    _progressBar.Value = 0;
                     _okButton.Enabled = true;
                     _okButton.Text = "Start";
                     _cancelButton.Enabled = true;
                     _cancelButton.Text = "Close";
                     break;
                 case BackupFormState.FindingChanges:
+                    Text = "Local Backup - Finding changes";
+
                     UpdateHeader(false);
+
                     _progressBar.Style = ProgressBarStyle.Marquee;
                     _okButton.Enabled = false;
                     _okButton.Text = "Finding changes...";
@@ -97,7 +102,10 @@ namespace LocalBackup.Forms
                     _cancelButton.Text = "Cancel";
                     break;
                 case BackupFormState.ReviewChanges:
+                    Text = "Local Backup - Reviewing changes";
+
                     UpdateHeader(false);
+
                     _progressBar.Style = ProgressBarStyle.Continuous;
                     _okButton.Enabled = true;
                     _okButton.Text = "Perform changes";
@@ -105,28 +113,35 @@ namespace LocalBackup.Forms
                     _cancelButton.Text = "Discard changes";
                     break;
                 case BackupFormState.PerformingChanges:
+                    Text = "Backup Utility - Performing changes";
+
                     UpdateHeader(false);
+
                     _progressBar.Style = ProgressBarStyle.Continuous;
                     _okButton.Enabled = false;
                     _okButton.Text = "Performing changes...";
                     _cancelButton.Enabled = true;
                     _cancelButton.Text = "Cancel";
                     break;
-                case BackupFormState.Done:
-                    UpdateHeader(false);
-                    _progressBar.Style = ProgressBarStyle.Continuous;
-                    _okButton.Enabled = true;
-                    _okButton.Text = "Start new backup";
-                    _cancelButton.Enabled = true;
-                    _cancelButton.Text = "Close";
-                    break;
                 case BackupFormState.Canceling:
+                    Text = "Backup Utility - Canceling...";
+
                     UpdateHeader(false);
+
                     _progressBar.Style = ProgressBarStyle.Marquee;
                     _okButton.Enabled = false;
                     _okButton.Text = "Please wait...";
                     _cancelButton.Enabled = false;
                     _cancelButton.Text = "Canceling...";
+                    break;
+                case BackupFormState.Done:
+                    UpdateHeader(false);
+
+                    _progressBar.Style = ProgressBarStyle.Continuous;
+                    _okButton.Enabled = true;
+                    _okButton.Text = "Start new backup";
+                    _cancelButton.Enabled = true;
+                    _cancelButton.Text = "Close";
                     break;
             }
             ResumeLayout();
@@ -196,6 +211,7 @@ namespace LocalBackup.Forms
                 case BackupFormState.ReviewChanges:
                     break;
                 case BackupFormState.Done:
+                    SetState(BackupFormState.Idle);
                     break;
             }
         }
@@ -212,6 +228,7 @@ namespace LocalBackup.Forms
                     _findChangesTask.Cancel();
                     break;
                 case BackupFormState.ReviewChanges:
+                    SetState(BackupFormState.Idle);
                     break;
                 case BackupFormState.PerformingChanges:
                     break;
@@ -336,20 +353,18 @@ namespace LocalBackup.Forms
                 {
                     try
                     {
-                        _backupForm.SetTitle("Local Backup - Finding changes...");
                         _backupForm.SetState(BackupFormState.FindingChanges);
 
                         await _mirrorer.RunAsync(SourceDirectory, DestinationDirectory, FileInfoComparer, _cts.Token);
 
                         if (_mirrorer.ProcessingQueue.Count > 0)
                             FlushQueue();
-
-                        _backupForm.SetTitle("Local Backup - Reviewing changes...");
+                        
                         _backupForm.SetState(BackupFormState.ReviewChanges);
                     }
                     catch (OperationCanceledException)
                     {
-                        _backupForm.SetTitle("Backup Utility - Canceled");
+                        _backupForm.Text = "Backup Utility - Canceled";
                         _backupForm.SetState(BackupFormState.Done);
                     }
                 }
@@ -358,7 +373,6 @@ namespace LocalBackup.Forms
             public void Cancel()
             {
                 _cts.Cancel();
-                _backupForm.SetTitle("Backup Utility - Canceling...");
                 _backupForm.SetState(BackupFormState.Canceling);
             }
 

@@ -263,7 +263,6 @@
             this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "BackupForm";
-            this.Text = "Local Backup";
             this._footerPanel.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
