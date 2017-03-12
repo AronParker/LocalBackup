@@ -249,7 +249,9 @@ namespace LocalBackup.Forms
         {
             private BackupForm _backupForm;
             private BufferedDirectoryMirrorer _mirrorer;
-            
+            private DirectoryInfo _sourceDirectory;
+            private DirectoryInfo _destinationDirectory;
+            private IFileInfoEqualityComparer _fileInfoComparer;
             private CancellationTokenSource _cts;
 
             public FindChangesTask(BackupForm backupForm) : this()
@@ -260,15 +262,12 @@ namespace LocalBackup.Forms
                 _mirrorer.QueueFlushRequested += Mirrorer_QueueFlushRequested;
             }
 
-            public DirectoryInfo SourceDirectory { get; private set; }
-            public DirectoryInfo DestinationDirectory { get; private set; }
-            public IFileInfoEqualityComparer FileInfoComparer { get; private set; }
 
             public bool SetSourceDirectory(string sourceDirectory)
             {
                 try
                 {
-                    SourceDirectory = new DirectoryInfo(sourceDirectory);
+                    _sourceDirectory = new DirectoryInfo(sourceDirectory);
                 }
                 catch (Exception ex) when (ex is ArgumentException ||
                                            ex is PathTooLongException ||
@@ -282,7 +281,7 @@ namespace LocalBackup.Forms
                     return false;
                 }
 
-                if (!SourceDirectory.Exists)
+                if (!_sourceDirectory.Exists)
                 {
                     MessageBox.Show("The source directory you specified does not exist.",
                                     "Source directory not found",
@@ -298,7 +297,7 @@ namespace LocalBackup.Forms
             {
                 try
                 {
-                    DestinationDirectory = new DirectoryInfo(destinationDirectory);
+                    _destinationDirectory = new DirectoryInfo(destinationDirectory);
                     return true;
                 }
                 catch (Exception ex) when (ex is ArgumentException ||
@@ -318,7 +317,7 @@ namespace LocalBackup.Forms
             {
                 if (!quickScan)
                 {
-                    FileInfoComparer = new FileComparer();
+                    _fileInfoComparer = new FileComparer();
                     return true;
                 }
 
@@ -333,9 +332,9 @@ namespace LocalBackup.Forms
                     return false;
                 }
 
-                FileInfoComparer = CreateQuickScanComparer(fileSystem);
+                _fileInfoComparer = CreateQuickScanComparer(fileSystem);
 
-                if (FileInfoComparer == null)
+                if (_fileInfoComparer == null)
                 {
                     MessageBox.Show("Destination directory uses a file system where quick scan is not supported.",
                                     "Unsupported file system",
@@ -355,7 +354,7 @@ namespace LocalBackup.Forms
                     {
                         _backupForm.SetState(BackupFormState.FindingChanges);
 
-                        await _mirrorer.RunAsync(SourceDirectory, DestinationDirectory, FileInfoComparer, _cts.Token);
+                        await _mirrorer.RunAsync(_sourceDirectory, _destinationDirectory, _fileInfoComparer, _cts.Token);
 
                         if (_mirrorer.ProcessingQueue.Count > 0)
                             FlushQueue();
@@ -380,7 +379,7 @@ namespace LocalBackup.Forms
             {
                 try
                 {
-                    return new DriveInfo(DestinationDirectory.FullName).DriveFormat;
+                    return new DriveInfo(_destinationDirectory.FullName).DriveFormat;
                 }
                 catch (Exception ex) when (ex is IOException ||
                                            ex is UnauthorizedAccessException)
