@@ -410,15 +410,15 @@ namespace LocalBackup.Forms
                             {
                                 case FileSystemOperationType.CreateDirectory:
                                 case FileSystemOperationType.CopyFile:
-                                    lvi.BackColor = Colors.Green;
+                                    lvi.BackColor = s_green;
                                     break;
                                 case FileSystemOperationType.EditDirectory:
                                 case FileSystemOperationType.EditFile:
-                                    lvi.BackColor = Colors.Yellow;
+                                    lvi.BackColor = s_yellow;
                                     break;
                                 case FileSystemOperationType.DestroyDirectory:
                                 case FileSystemOperationType.DeleteFile:
-                                    lvi.BackColor = Colors.Red;
+                                    lvi.BackColor = s_red;
                                     break;
                             }
 
@@ -427,13 +427,13 @@ namespace LocalBackup.Forms
                             break;
                         case FileException ex:
                             lvi = new ListViewItem(new string[] { "File error", ex.File.Name, ex.File.FullName, ex.Message });
-                            lvi.BackColor = Colors.Red;
+                            lvi.BackColor = s_red;
                             lvi.ImageIndex = 6;
                             lvi.Tag = ex;
                             break;
                         case DirectoryException ex:
                             lvi = new ListViewItem(new string[] { "Directory error", ex.Directory.Name, ex.Directory.FullName, ex.Message });
-                            lvi.BackColor = Colors.Red;
+                            lvi.BackColor = s_red;
                             lvi.ImageIndex = 7;
                             lvi.Tag = ex;
                             break;
@@ -487,13 +487,6 @@ namespace LocalBackup.Forms
                         _lastUpdate = now;
                     }
                 }
-            }
-
-            private static class Colors
-            {
-                public static Color Red { get; } = Color.FromArgb(0xFF, 0xE0, 0xE0);
-                public static Color Yellow { get; } = Color.FromArgb(0xFF, 0xFF, 0xE0);
-                public static Color Green { get; } = Color.FromArgb(0xE0, 0xFF, 0xE0);
             }
         }
     }
