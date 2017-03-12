@@ -15,6 +15,12 @@ namespace LocalBackup.Forms
 {
     public partial class BackupForm : Form
     {
+        private const int MinRefreshInterval = 500;
+
+        private static Color s_red = Color.FromArgb(0xFF, 0xE0, 0xE0);
+        private static Color s_yellow = Color.FromArgb(0xFF, 0xFF, 0xE0);
+        private static Color s_green = Color.FromArgb(0xE0, 0xFF, 0xE0);
+
         private List<ListViewItem> _items = new List<ListViewItem>();
         private BackupFormState _state;
 
@@ -239,24 +245,18 @@ namespace LocalBackup.Forms
             }
         }
 
-        private class FindChangesTask
+        private struct FindChangesTask
         {
-            private const int MinRefreshInterval = 500;
-
-            private static Color s_red  = Color.FromArgb(0xFF, 0xE0, 0xE0);
-            private static Color s_yellow = Color.FromArgb(0xFF, 0xFF, 0xE0);
-            private static Color s_green = Color.FromArgb(0xE0, 0xFF, 0xE0);
-
             private BackupForm _backupForm;
             private BufferedDirectoryMirrorer _mirrorer;
             
             private CancellationTokenSource _cts;
 
-            public FindChangesTask(BackupForm backupForm)
+            public FindChangesTask(BackupForm backupForm) : this()
             {
                 _backupForm = backupForm;
-
                 _mirrorer = new BufferedDirectoryMirrorer();
+
                 _mirrorer.QueueFlushRequested += Mirrorer_QueueFlushRequested;
             }
 
