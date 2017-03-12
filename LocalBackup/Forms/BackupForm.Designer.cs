@@ -181,6 +181,8 @@
             // _autoScrollCheckBox
             // 
             this._autoScrollCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this._autoScrollCheckBox.Checked = true;
+            this._autoScrollCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
             this._autoScrollCheckBox.Location = new System.Drawing.Point(672, 71);
             this._autoScrollCheckBox.Name = "_autoScrollCheckBox";
             this._autoScrollCheckBox.Size = new System.Drawing.Size(100, 23);

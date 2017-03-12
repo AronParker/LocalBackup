@@ -212,6 +212,8 @@ namespace LocalBackup.Forms
                     if (!_findChangesTask.FindComparer(_modeComboBox.SelectedIndex == 0))
                         return;
 
+                    _findChangesTask.Init();
+
                     using (_cts = new CancellationTokenSource())
                     {
                         _currentTask = _findChangesTask.Run(_cts.Token);
@@ -317,6 +319,11 @@ namespace LocalBackup.Forms
                 }
             }
 
+            public void Init()
+            {
+                _mirrorer.Init();
+            }
+
             public bool FindComparer(bool quickScan)
             {
                 if (!quickScan)
@@ -359,7 +366,7 @@ namespace LocalBackup.Forms
                     await _mirrorer.RunAsync(_sourceDirectory, _destinationDirectory, _fileInfoComparer, ct);
 
                     if (_mirrorer.ProcessingQueue.Count > 0)
-                        FlushQueue();
+                        Flush();
 
                     _backupForm.SetState(BackupFormState.ReviewChanges);
                 }
@@ -369,7 +376,7 @@ namespace LocalBackup.Forms
                     _backupForm.SetState(BackupFormState.Done);
                 }
             }
-
+            
             private string GetDestinationFileSystem()
             {
                 try
@@ -401,7 +408,7 @@ namespace LocalBackup.Forms
                 }
             }
 
-            private void FlushQueue()
+            private void Flush()
             {
                 Debug.Assert(_mirrorer.ProcessingQueue.Count > 0);
 
@@ -475,18 +482,23 @@ namespace LocalBackup.Forms
             private void Mirrorer_FlushRequested(object sender, EventArgs e)
             {
                 if (_backupForm.InvokeRequired)
-                    _backupForm.Invoke((MethodInvoker)FlushQueue);
+                    _backupForm.Invoke((MethodInvoker)Flush);
                 else
-                    FlushQueue();
+                    Flush();
             }
 
             private class QueuedDirectoryMirrorer : DirectoryMirrorer
             {
-                private DateTimeOffset _lastUpdate = DateTimeOffset.MinValue;
+                private DateTimeOffset _lastUpdate;
 
                 public event EventHandler FlushRequested;
 
                 public Queue<object> ProcessingQueue { get; } = new Queue<object>();
+
+                public void Init()
+                {
+                    _lastUpdate = DateTimeOffset.MinValue;
+                }
 
                 protected override void OnOperationFound(FileSystemOperation operation)
                 {
@@ -592,22 +604,22 @@ namespace LocalBackup.Forms
 
                     if ((now - _lastUpdate).TotalMilliseconds >= MinRefreshInterval)
                     {
-                        RequestUpdate();
+                        RequestFlush();
 
                         _lastUpdate = now;
                     }
                 }
 
                 if (_queue.Count > 0)
-                    RequestUpdate();
+                    RequestFlush();
             }
 
-            private void RequestUpdate()
+            private void RequestFlush()
             {
                 if (_backupForm.InvokeRequired)
-                    _backupForm.Invoke((MethodInvoker)Update);
+                    _backupForm.Invoke((MethodInvoker)Flush);
                 else
-                    Update();
+                    Flush();
             }
 
             private void ProcessOperation(int index, FileSystemOperation op)
@@ -627,17 +639,10 @@ namespace LocalBackup.Forms
                 }
             }
 
-            private void Update()
+            private void Flush()
             {
                 Debug.Assert(_queue.Count > 0);
 
-                FlushQueue();
-                AutoScroll();
-                UpdateProgress();
-            }
-
-            private void FlushQueue()
-            {
                 _backupForm._operationsListViewEx.BeginUpdate();
                 foreach (var result in _queue)
                 {
@@ -650,28 +655,27 @@ namespace LocalBackup.Forms
                 }
                 _backupForm._operationsListViewEx.EndUpdate();
 
-                _queue.Clear();
-            }
-
-            private void AutoScroll()
-            {
                 if (_backupForm._autoScrollCheckBox.Checked)
                 {
-                    var lastIndex = _backupForm._items.Count - 1;
+                    var lastIndex = _queue[_queue.Count - 1].Index;
                     _backupForm._operationsListViewEx.EnsureVisible(lastIndex);
                 }
-            }
 
-            private void UpdateProgress()
-            {
+                _queue.Clear();
+
                 var percentage = (double)_processedWeight / _totalWeight;
 
-                if (percentage > .1)
+                if (percentage >= .1)
                 {
-                    var elapsed = DateTimeOffset.UtcNow - _start;
-                    var remaining = new TimeSpan((long)(elapsed.Ticks / percentage));
+                    var elapsed = (DateTimeOffset.UtcNow - _start).Ticks;
+                    var total = (long)(elapsed / percentage);
+                    var remaining = new TimeSpan(total - elapsed);
 
-                    _backupForm.Text = $"Backup Utility - Performing changes ({remaining.ToHumanReadableString()}) left)";
+                    _backupForm.Text = FormattableString.Invariant($"Backup Utility - Performing changes ({percentage:P0}, {remaining.ToHumanReadableString()} left)");
+                }
+                else
+                {
+                    _backupForm.Text = FormattableString.Invariant($"Backup Utility - Performing changes ({percentage:P0})");
                 }
 
                 _backupForm._progressBar.Value = (int)(percentage * 10000);
@@ -717,7 +721,6 @@ namespace LocalBackup.Forms
             {
                 item.BackColor = s_yellow;
             }
-            
             
             private struct ChangeResult
             {
