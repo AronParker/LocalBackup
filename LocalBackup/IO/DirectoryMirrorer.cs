@@ -12,7 +12,7 @@ namespace LocalBackup.IO
     public class DirectoryMirrorer
     {
         private List<DirectoryInfo> _stack = new List<DirectoryInfo>();
-        private Dictionary<string, FileSystemInfo> _dstLookup = new Dictionary<string, FileSystemInfo>(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<string, FileSystemInfo> _srcLookup = new Dictionary<string, FileSystemInfo>(StringComparer.OrdinalIgnoreCase);
         private DirectoryCopier _copier;
         private DirectoryDeleter _deleter;
         
@@ -72,9 +72,7 @@ namespace LocalBackup.IO
                 _stack.Add(dstDir);
                 _stack.Add(srcDir);
 
-                PostOperations(fileInfoComparer);
-
-                _dstLookup.Clear();
+                GetOperations(fileInfoComparer);
             }
             else
             {
@@ -82,7 +80,7 @@ namespace LocalBackup.IO
             }
         }
 
-        private void PostOperations(IFileInfoEqualityComparer fileInfoComparer)
+        private void GetOperations(IFileInfoEqualityComparer fileInfoComparer)
         {
             while (_stack.Count > 0)
             {
@@ -97,40 +95,21 @@ namespace LocalBackup.IO
                 if (FileSystem.ClearArchiveAttribute(srcDir.Attributes) != FileSystem.ClearArchiveAttribute(dstDir.Attributes))
                     OnOperationFound(new EditDirectoryOperation(dstDir, srcDir.Attributes));
 
-                PostDirectoryChanges(srcDir, dstDir, fileInfoComparer);
+                GetDirectoryChanges(srcDir, dstDir, fileInfoComparer);
 
                 if (_stack.Count > index)
                     _stack.Reverse(index, _stack.Count - index);
             }
         }
 
-        private void PostDirectoryChanges(DirectoryInfo srcDir, DirectoryInfo dstDir, IFileInfoEqualityComparer fileInfoComparer)
+        private void GetDirectoryChanges(DirectoryInfo srcDir, DirectoryInfo dstDir, IFileInfoEqualityComparer fileInfoComparer)
         {
-            BuildDestinationLookup(dstDir);
-
-            try
-            {
-                foreach (var srcFsi in srcDir.EnumerateFileSystemInfos())
-                    ProcessSourceFileSystemInfo(srcFsi, dstDir, fileInfoComparer);
-            }
-            catch (Exception ex) when (ex is IOException ||
-                                       ex is UnauthorizedAccessException ||
-                                       ex is SecurityException)
-            {
-                OnError(new DirectoryException(srcDir, ex));
-            }
-
-            RemoveLeftovers();
-        }
-
-        private void BuildDestinationLookup(DirectoryInfo dstDir)
-        {
-            _dstLookup.Clear();
+            BuildSourceLookup(srcDir);
 
             try
             {
                 foreach (var dstFsi in dstDir.EnumerateFileSystemInfos())
-                    _dstLookup.Add(dstFsi.Name, dstFsi);
+                    ProcessDestinationFileSystemInfo(dstFsi, fileInfoComparer);
             }
             catch (Exception ex) when (ex is IOException ||
                                        ex is UnauthorizedAccessException ||
@@ -138,34 +117,53 @@ namespace LocalBackup.IO
             {
                 OnError(new DirectoryException(dstDir, ex));
             }
+
+            CopyRemainingFileSystemInfosTo(dstDir);
         }
 
-        private void ProcessSourceFileSystemInfo(FileSystemInfo srcFsi, DirectoryInfo dstDir, IFileInfoEqualityComparer fileInfoComparer)
+        private void BuildSourceLookup(DirectoryInfo srcDir)
         {
-            var fsiExistsInDst = _dstLookup.TryGetValue(srcFsi.Name, out var dstFsi);
+            _srcLookup.Clear();
 
-            if (fsiExistsInDst)
+            try
             {
-                _dstLookup.Remove(srcFsi.Name);
+                foreach (var srcFsi in srcDir.EnumerateFileSystemInfos())
+                    _srcLookup.Add(srcFsi.Name, srcFsi);
+            }
+            catch (Exception ex) when (ex is IOException ||
+                                       ex is UnauthorizedAccessException ||
+                                       ex is SecurityException)
+            {
+                OnError(new DirectoryException(srcDir, ex));
+            }
+        }
+
+        private void ProcessDestinationFileSystemInfo(FileSystemInfo dstFsi, IFileInfoEqualityComparer fileInfoComparer)
+        {
+            var fsiExistsInSrc = _srcLookup.TryGetValue(dstFsi.Name, out var srcFsi);
+
+            if (fsiExistsInSrc)
+            {
+                _srcLookup.Remove(dstFsi.Name);
                 CompareFileSystenInfo(srcFsi, dstFsi, fileInfoComparer);
             }
             else
             {
-                if (srcFsi is FileInfo srcFile)
-                    OnOperationFound(new CopyFileOperation(srcFile, new FileInfo(Path.Combine(dstDir.FullName, srcFile.Name))));
-                else if (srcFsi is DirectoryInfo srcDir)
-                    _copier.CopyDirectory(srcDir, new DirectoryInfo(Path.Combine(dstDir.FullName, srcDir.Name)));
+                if (dstFsi is FileInfo dstFile)
+                    OnOperationFound(new DeleteFileOperation(dstFile));
+                else if (dstFsi is DirectoryInfo dstDir)
+                    _deleter.DeleteDirectory(dstDir);
             }
         }
 
-        private void RemoveLeftovers()
-        {
-            foreach (var dstFsi in _dstLookup.Values)
+        private void CopyRemainingFileSystemInfosTo(DirectoryInfo dstDir)
+        {                
+            foreach (var dstFsi in _srcLookup.Values)
             {
-                if (dstFsi is FileInfo fileInDst)
-                    OnOperationFound(new DeleteFileOperation(fileInDst));
-                else if (dstFsi is DirectoryInfo dirInDst)
-                    _deleter.DeleteDirectory(dirInDst);
+                if (dstFsi is FileInfo srcFile)
+                    OnOperationFound(new CopyFileOperation(srcFile, new FileInfo(Path.Combine(dstDir.FullName, srcFile.Name))));
+                else if (dstFsi is DirectoryInfo srcDir)
+                    _copier.CopyDirectory(srcDir, new DirectoryInfo(Path.Combine(dstDir.FullName, srcDir.Name)));
             }
         }
 
@@ -196,7 +194,6 @@ namespace LocalBackup.IO
                 if (dstFsi is FileInfo dstFile)
                 {
                     OnOperationFound(new DeleteFileOperation(dstFile));
-
                     _copier.CopyDirectory(srcDir, new DirectoryInfo(dstFsi.FullName));
                 }
                 else if (dstFsi is DirectoryInfo dstDir)
@@ -229,10 +226,10 @@ namespace LocalBackup.IO
                 if (FileSystem.ClearArchiveAttribute(srcDir.Attributes) != FileAttributes.Directory)
                     _detector.OnOperationFound(new EditDirectoryOperation(dstDir, srcDir.Attributes));
 
-                PostOperations();
+                GetOperations();
             }
 
-            private void PostOperations()
+            private void GetOperations()
             {
                 while (_stack.Count > 0)
                 {
@@ -243,14 +240,14 @@ namespace LocalBackup.IO
                     var dstDir = _stack[--index];
 
                     _stack.RemoveRange(index, 2);
-                    PostCopyDirectoryOperations(srcDir, dstDir);
+                    GetCopyDirectoryOperations(srcDir, dstDir);
 
                     if (_stack.Count > index)
                         _stack.Reverse(index, _stack.Count - index);
                 }
             }
 
-            private void PostCopyDirectoryOperations(DirectoryInfo curSrcDir, DirectoryInfo curDstDir)
+            private void GetCopyDirectoryOperations(DirectoryInfo curSrcDir, DirectoryInfo curDstDir)
             {
                 try
                 {
