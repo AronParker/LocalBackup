@@ -52,20 +52,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Controller\BackupController.cs" />
-    <Compile Include="Controller\BackupFormState.cs" />
     <Compile Include="Controls\ListViewEx.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Extensions\IListEx.cs" />
     <Compile Include="Extensions\StreamEx.cs" />
-    <Compile Include="Controller\Colors.cs" />
-    <Compile Include="Controller\BufferedDirectoryMirrorer.cs" />
     <Compile Include="IO\DuplicateFinderState.cs" />
-    <Compile Include="View\BackupForm.cs">
+    <Compile Include="Forms\BackupForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="View\BackupForm.Designer.cs">
+    <Compile Include="Forms\BackupForm.Designer.cs">
       <DependentUpon>BackupForm.cs</DependentUpon>
     </Compile>
     <Compile Include="IO\DirectoryException.cs" />
@@ -82,9 +78,9 @@
     <Compile Include="IO\FileInfoEnumerableEventHandler.cs" />
     <Compile Include="IO\FileSystem.cs" />
     <Compile Include="IO\DirectoryMirrorer.cs" />
-    <Compile Include="IO\FileSystemOperationEventArgs.cs" />
-    <Compile Include="IO\FileSystemOperationHandler.cs" />
-    <Compile Include="IO\FileSystemOperationType.cs" />
+    <Compile Include="IO\Operations\FileSystemOperationEventArgs.cs" />
+    <Compile Include="IO\Operations\FileSystemOperationHandler.cs" />
+    <Compile Include="IO\Operations\FileSystemOperationType.cs" />
     <Compile Include="IO\Operations\FileSystemOperation.cs" />
     <Compile Include="IO\Operations\CopyFileOperation.cs" />
     <Compile Include="IO\Operations\CreateDirectoryOperation.cs" />
@@ -95,7 +91,7 @@
     <Compile Include="NativeMethods.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="View\BackupForm.resx">
+    <EmbeddedResource Include="Forms\BackupForm.resx">
       <DependentUpon>BackupForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">

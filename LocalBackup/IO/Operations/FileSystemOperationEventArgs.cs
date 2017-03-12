@@ -1,6 +1,4 @@
-﻿using LocalBackup.IO.Operations;
-
-namespace LocalBackup.IO
+﻿namespace LocalBackup.IO.Operations
 {
     public class FileSystemOperationEventArgs
     {
