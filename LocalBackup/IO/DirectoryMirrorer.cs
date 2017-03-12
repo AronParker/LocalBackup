@@ -45,6 +45,8 @@ namespace LocalBackup.IO
                 throw new ArgumentNullException(nameof(fileInfoComparer));
             if (!srcDir.Exists)
                 throw new DirectoryNotFoundException("Source directory does not exist: " + srcDir.FullName + ".");
+            if (IsRunning)
+                throw new InvalidOperationException("DirectoryMirrorer is already running.");
             
             _token = token;
             _task = Task.Run(() => InternalStart(srcDir, dstDir, fileInfoComparer));

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Windows.Forms;
-using LocalBackup.Controller;
+using LocalBackup.Forms;
 
 namespace LocalBackup
 {
@@ -11,7 +11,7 @@ namespace LocalBackup
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            new BackupController().Run();
+            Application.Run(new BackupForm());
         }
     }
 }

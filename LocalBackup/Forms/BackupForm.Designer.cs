@@ -82,6 +82,7 @@
             this._cancelButton.Size = new System.Drawing.Size(120, 26);
             this._cancelButton.TabIndex = 1;
             this._cancelButton.UseVisualStyleBackColor = true;
+            this._cancelButton.Click += new System.EventHandler(this.CancelButton_Click);
             // 
             // _okButton
             // 
@@ -91,6 +92,7 @@
             this._okButton.Size = new System.Drawing.Size(120, 26);
             this._okButton.TabIndex = 0;
             this._okButton.UseVisualStyleBackColor = true;
+            this._okButton.Click += new System.EventHandler(this.OkButton_Click);
             // 
             // _sourceLabel
             // 
@@ -240,7 +242,7 @@
             this._operationsImageList.Images.SetKeyName(6, "folder_error.png");
             this._operationsImageList.Images.SetKeyName(7, "page_error.png");
             // 
-            // MainForm
+            // BackupForm
             // 
             this.AcceptButton = this._okButton;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
@@ -260,7 +262,7 @@
             this.Controls.Add(this._footerPanel);
             this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.Name = "MainForm";
+            this.Name = "BackupForm";
             this.Text = "Local Backup";
             this._footerPanel.ResumeLayout(false);
             this.ResumeLayout(false);

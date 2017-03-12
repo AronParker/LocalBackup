@@ -1,88 +1,59 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
+using System.IO;
+using System.Security;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
-using LocalBackup.Controller;
+using LocalBackup.IO;
+using LocalBackup.IO.FileComparers;
+using LocalBackup.IO.Operations;
 
 namespace LocalBackup.Forms
 {
     public partial class BackupForm : Form
     {
-        private IReadOnlyList<ListViewItem> _dataSource;
+        private List<ListViewItem> _items = new List<ListViewItem>();
+        private BackupFormState _state;
 
+        private FindChangesTask _findChangesTask;
+        
         public BackupForm()
         {
             InitializeComponent();
 
             _modeComboBox.SelectedIndex = 0;
-            ApplyState(BackupFormState.Idle);
+            SetState(BackupFormState.Idle);
+
+            _findChangesTask = new FindChangesTask(this);
         }
 
-        public event EventHandler OkButtonClick
+        private enum BackupFormState
         {
-            add => _okButton.Click += value;
-            remove => _okButton.Click -= value;
+            Idle,
+            FindingChanges,
+            ReviewingChanges,
+            PerformingChanges,
+            Done,
+            Canceling,
         }
 
-        public event EventHandler CancelButtonClick
+        protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            add => _cancelButton.Click += value;
-            remove => _cancelButton.Click -= value;
+            // TODO
+            base.OnFormClosing(e);
         }
 
-        public string SourceDirectory
+        private void SetTitle(string title)
         {
-            get => _sourceTextBox.Text;
-            set => _sourceTextBox.Text = value;
+            Text = title;
         }
 
-        public string DestinationDirectory
+        private void SetState(BackupFormState state)
         {
-            get => _destinationTextBox.Text;
-            set => _destinationTextBox.Text = value;
-        }
-
-        public bool QuickScan
-        {
-            get => _modeComboBox.SelectedIndex == 0;
-            set => _modeComboBox.SelectedIndex = value ? 0 : 1;
-        }
-
-        public bool ScrollToLastOperation
-        {
-            get => _autoScrollCheckBox.Checked;
-            set => _autoScrollCheckBox.Checked = value;
-        }
-
-        public int Progress
-        {
-            get => _progressBar.Value;
-            set => _progressBar.Value = value;
-        }
-
-        public IReadOnlyList<ListViewItem> DataSource
-        {
-            get => _dataSource;
-            set
-            {
-                _dataSource = value;
-                RefreshDataSource();
-            }
-        }
-
-        public void RefreshDataSource()
-        {
-            if (_dataSource == null)
-                _operationsListViewEx.VirtualListSize = 0;
-            else if (_operationsListViewEx.VirtualListSize != _dataSource.Count)
-                _operationsListViewEx.VirtualListSize = _dataSource.Count;
-            else
-                _operationsListViewEx.Refresh();
-        }
-
-        public void ApplyState(BackupFormState state)
-        {
-            if (state < BackupFormState.Idle || state > BackupFormState.Canceling)
-                throw new ArgumentOutOfRangeException(nameof(state));
+            _state = state;
 
             switch (state)
             {
@@ -148,6 +119,7 @@ namespace LocalBackup.Forms
             _modeLabel.Enabled = enabled;
             _modeComboBox.Enabled = enabled;
         }
+        
 
         private void Browse_Click(object sender, EventArgs e)
         {
@@ -178,7 +150,323 @@ namespace LocalBackup.Forms
 
         private void OperationsListView_RetrieveVirtualItem(object sender, RetrieveVirtualItemEventArgs e)
         {
-            e.Item = DataSource[e.ItemIndex];
+            e.Item = _items[e.ItemIndex];
+        }
+
+        private async void OkButton_Click(object sender, EventArgs e)
+        {
+            switch (_state)
+            {
+                case BackupFormState.Idle:
+                    await _findChangesTask.Run();
+                    break;
+                case BackupFormState.ReviewingChanges:
+                    break;
+                case BackupFormState.Done:
+                    break;
+            }
+        }
+
+        private void CancelButton_Click(object sender, EventArgs e)
+        {
+            switch (_state)
+            {
+                case BackupFormState.Idle:
+                case BackupFormState.Done:
+                    Close();
+                    break;
+                case BackupFormState.FindingChanges:
+                    _findChangesTask.Cancel();
+                    break;
+                case BackupFormState.ReviewingChanges:
+                    break;
+                case BackupFormState.PerformingChanges:
+                    break;
+                case BackupFormState.Canceling:
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private class FindChangesTask
+        {
+            private BackupForm _backupForm;
+            private BufferedDirectoryMirrorer _mirrorer;
+
+            public Task Task { get; private set; }
+            private CancellationTokenSource _cts;
+
+            public FindChangesTask(BackupForm backupForm)
+            {
+                _backupForm = backupForm;
+
+                _mirrorer = new BufferedDirectoryMirrorer();
+                _mirrorer.QueueFlushRequested += Mirrorer_QueueFlushRequested;
+            }
+
+            public DirectoryInfo SourceDirectory { get; private set; }
+            public DirectoryInfo DestinationDirectory { get; private set; }
+            public IFileInfoEqualityComparer FileInfoComparer { get; private set; }
+
+            public bool SetSourceDirectory(string sourceDirectory)
+            {
+                try
+                {
+                    SourceDirectory = new DirectoryInfo(sourceDirectory);
+                }
+                catch (Exception ex) when (ex is ArgumentException ||
+                                           ex is PathTooLongException ||
+                                           ex is SecurityException)
+
+                {
+                    MessageBox.Show("The source directory you specified is invalid: " + ex.Message,
+                                    "Source directory invalid",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Error);
+                    return false;
+                }
+
+                if (!SourceDirectory.Exists)
+                {
+                    MessageBox.Show("The source directory you specified does not exist.",
+                                    "Source directory not found",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Error);
+                    return false;
+                }
+
+                return true;
+            }
+
+            public bool SetDestinationDirectory(string destinationDirectory)
+            {
+                try
+                {
+                    DestinationDirectory = new DirectoryInfo(destinationDirectory);
+                    return true;
+                }
+                catch (Exception ex) when (ex is ArgumentException ||
+                                           ex is PathTooLongException ||
+                                           ex is SecurityException)
+
+                {
+                    MessageBox.Show("The destination directory you specified is invalid: " + ex.Message,
+                                    "Destination directory invalid",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Error);
+                    return false;
+                }
+            }
+
+            public bool FindComparer(bool quickScan)
+            {
+                if (!quickScan)
+                {
+                    FileInfoComparer = new FileComparer();
+                    return true;
+                }
+
+                var fileSystem = GetDestinationFileSystem();
+
+                if (fileSystem == null)
+                {
+                    MessageBox.Show("Failed to detect destination file system.",
+                                    "Unknown file system",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Error);
+                    return false;
+                }
+
+                FileInfoComparer = CreateQuickScanComparer(fileSystem);
+
+                if (FileInfoComparer == null)
+                {
+                    MessageBox.Show("Destination directory uses a file system where quick scan is not supported.",
+                                    "Unsupported file system",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Error);
+                    return false;
+                }
+
+                return true;
+            }
+
+            public async Task Run()
+            {
+                if (!SetSourceDirectory(_backupForm._sourceTextBox.Text))
+                    return;
+
+                if (!SetDestinationDirectory(_backupForm._destinationTextBox.Text))
+                    return;
+
+                if (!FindComparer(_backupForm._modeComboBox.SelectedIndex == 0))
+                    return;
+
+                using (_cts = new CancellationTokenSource())
+                {
+                    try
+                    {
+                        _backupForm.SetTitle("Local Backup - Finding changes...");
+                        _backupForm.SetState(BackupFormState.FindingChanges);
+                        Task = _mirrorer.RunAsync(SourceDirectory, DestinationDirectory, FileInfoComparer, _cts.Token);
+
+                        await Task;
+
+                        if (_mirrorer.ProcessingQueue.Count > 0)
+                            FlushQueue();
+
+                        _backupForm.SetTitle("Local Backup - Reviewing changes...");
+                        _backupForm.SetState(BackupFormState.ReviewingChanges);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        _backupForm.SetTitle("Backup Utility - Canceled");
+                        _backupForm.SetState(BackupFormState.Done);
+                    }
+                }
+            }
+
+            public void Cancel()
+            {
+                _cts.Cancel();
+                _backupForm.SetTitle("Backup Utility - Canceling...");
+                _backupForm.SetState(BackupFormState.Canceling);
+            }
+
+            private string GetDestinationFileSystem()
+            {
+                try
+                {
+                    return new DriveInfo(DestinationDirectory.FullName).DriveFormat;
+                }
+                catch (Exception ex) when (ex is IOException ||
+                                           ex is UnauthorizedAccessException)
+                {
+                    MessageBox.Show("Failed to detect destination directory file system.",
+                                    "Failed to detect file system",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Error);
+                    return null;
+                }
+            }
+
+            private IFileInfoEqualityComparer CreateQuickScanComparer(string fileSystem)
+            {
+                switch (fileSystem)
+                {
+                    case "FAT32":
+                    case "exFAT":
+                        return new FATFileComparer();
+                    case "NTFS":
+                        return new NTFSFileComparer();
+                    default:
+                        return null;
+                }
+            }
+
+            private void FlushQueue()
+            {
+                Debug.Assert(_mirrorer.ProcessingQueue.Count > 0);
+
+                foreach (var item in _mirrorer.ProcessingQueue)
+                {
+                    ListViewItem lvi;
+
+                    switch (item)
+                    {
+                        case FileSystemOperation op:
+                            lvi = new ListViewItem(new string[] { op.Name, op.FileName, op.FilePath, string.Empty });
+
+                            switch (op.Type)
+                            {
+                                case FileSystemOperationType.CreateDirectory:
+                                case FileSystemOperationType.CopyFile:
+                                    lvi.BackColor = Colors.Green;
+                                    break;
+                                case FileSystemOperationType.EditDirectory:
+                                case FileSystemOperationType.EditFile:
+                                    lvi.BackColor = Colors.Yellow;
+                                    break;
+                                case FileSystemOperationType.DestroyDirectory:
+                                case FileSystemOperationType.DeleteFile:
+                                    lvi.BackColor = Colors.Red;
+                                    break;
+                            }
+
+                            lvi.ImageIndex = (int)op.Type;
+                            lvi.Tag = op;
+                            break;
+                        case FileException ex:
+                            lvi = new ListViewItem(new string[] { "File error", ex.File.Name, ex.File.FullName, ex.Message });
+                            lvi.BackColor = Colors.Red;
+                            lvi.ImageIndex = 6;
+                            lvi.Tag = ex;
+                            break;
+                        case DirectoryException ex:
+                            lvi = new ListViewItem(new string[] { "Directory error", ex.Directory.Name, ex.Directory.FullName, ex.Message });
+                            lvi.BackColor = Colors.Red;
+                            lvi.ImageIndex = 7;
+                            lvi.Tag = ex;
+                            break;
+                        default:
+                            throw new NotSupportedException();
+                    }
+
+                    _backupForm._items.Add(lvi);
+                }
+
+                _mirrorer.ProcessingQueue.Clear();
+                _backupForm._operationsListViewEx.VirtualListSize = _backupForm._items.Count;
+            }
+
+            private void Mirrorer_QueueFlushRequested(object sender, EventArgs e)
+            {
+                if (_backupForm.InvokeRequired)
+                    _backupForm.Invoke((MethodInvoker)FlushQueue);
+                else
+                    FlushQueue();
+            }
+        }
+
+        private class BufferedDirectoryMirrorer : DirectoryMirrorer
+        {
+            private DateTimeOffset _lastUpdate = DateTimeOffset.MinValue;
+
+            public event EventHandler QueueFlushRequested;
+
+            public Queue<object> ProcessingQueue { get; } = new Queue<object>();
+
+            protected override void OnOperationFound(FileSystemOperation operation)
+            {
+                EnqueueItem(operation);
+            }
+
+            protected override void OnError(Exception ex)
+            {
+                EnqueueItem(ex);
+            }
+
+            private void EnqueueItem(object item)
+            {
+                ProcessingQueue.Enqueue(item);
+
+                var now = DateTimeOffset.UtcNow;
+
+                if ((now - _lastUpdate).TotalMilliseconds >= 500)
+                {
+                    QueueFlushRequested?.Invoke(this, EventArgs.Empty);
+
+                    _lastUpdate = now;
+                }
+            }
+        }
+
+        private static class Colors
+        {
+            public static Color Red { get; } = Color.FromArgb(0xFF, 0xE0, 0xE0);
+            public static Color Yellow { get; } = Color.FromArgb(0xFF, 0xFF, 0xE0);
+            public static Color Green { get; } = Color.FromArgb(0xE0, 0xFF, 0xE0);
         }
     }
 }

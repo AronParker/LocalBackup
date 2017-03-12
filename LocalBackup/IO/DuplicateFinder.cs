@@ -46,7 +46,9 @@ namespace LocalBackup.IO
                 throw new ArgumentNullException(nameof(dirs));
             if (fileInfoComparer == null)
                 throw new ArgumentNullException(nameof(fileInfoComparer));
-            
+            if (IsRunning)
+                throw new InvalidOperationException("DuplicateFinder is already running.");
+
             _token = token;
             _task = Task.Run(() => InternalStart(dirs, fileInfoComparer));
 
