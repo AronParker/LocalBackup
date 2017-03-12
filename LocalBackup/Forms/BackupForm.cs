@@ -19,6 +19,8 @@ namespace LocalBackup.Forms
         private BackupFormState _state;
 
         private FindChangesTask _findChangesTask;
+
+        private Task _currentTask;
         
         public BackupForm()
         {
@@ -34,16 +36,36 @@ namespace LocalBackup.Forms
         {
             Idle,
             FindingChanges,
-            ReviewingChanges,
+            ReviewChanges,
             PerformingChanges,
             Done,
             Canceling,
         }
 
-        protected override void OnFormClosing(FormClosingEventArgs e)
+        protected override async void OnFormClosing(FormClosingEventArgs e)
         {
-            // TODO
-            base.OnFormClosing(e);
+            switch (_state)
+            {
+                case BackupFormState.FindingChanges:
+                    e.Cancel = true;
+
+                    if (MessageBox.Show("Are you sure you want to cancel finding changes?", "Confirm Cancelation", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                        return;
+
+                    _findChangesTask.Cancel();
+                    await _currentTask;
+                    Close();
+                    break;
+                case BackupFormState.PerformingChanges:
+                    e.Cancel = true;
+
+                    break;
+                case BackupFormState.Canceling:
+                    e.Cancel = true;
+                    break;
+                default:
+                    break;
+            }
         }
 
         private void SetTitle(string title)
@@ -55,6 +77,7 @@ namespace LocalBackup.Forms
         {
             _state = state;
 
+            SuspendLayout();
             switch (state)
             {
                 case BackupFormState.Idle:
@@ -73,7 +96,7 @@ namespace LocalBackup.Forms
                     _cancelButton.Enabled = true;
                     _cancelButton.Text = "Cancel";
                     break;
-                case BackupFormState.ReviewingChanges:
+                case BackupFormState.ReviewChanges:
                     UpdateHeader(false);
                     _progressBar.Style = ProgressBarStyle.Continuous;
                     _okButton.Enabled = true;
@@ -106,6 +129,7 @@ namespace LocalBackup.Forms
                     _cancelButton.Text = "Canceling...";
                     break;
             }
+            ResumeLayout();
         }
 
         private void UpdateHeader(bool enabled)
@@ -120,7 +144,6 @@ namespace LocalBackup.Forms
             _modeComboBox.Enabled = enabled;
         }
         
-
         private void Browse_Click(object sender, EventArgs e)
         {
             using (var fbd = new FolderBrowserDialog())
@@ -158,9 +181,19 @@ namespace LocalBackup.Forms
             switch (_state)
             {
                 case BackupFormState.Idle:
-                    await _findChangesTask.Run();
+                    if (!_findChangesTask.SetSourceDirectory(_sourceTextBox.Text))
+                        return;
+
+                    if (!_findChangesTask.SetDestinationDirectory(_destinationTextBox.Text))
+                        return;
+
+                    if (!_findChangesTask.FindComparer(_modeComboBox.SelectedIndex == 0))
+                        return;
+
+                    _currentTask = _findChangesTask.Run();
+                    await _currentTask;
                     break;
-                case BackupFormState.ReviewingChanges:
+                case BackupFormState.ReviewChanges:
                     break;
                 case BackupFormState.Done:
                     break;
@@ -178,7 +211,7 @@ namespace LocalBackup.Forms
                 case BackupFormState.FindingChanges:
                     _findChangesTask.Cancel();
                     break;
-                case BackupFormState.ReviewingChanges:
+                case BackupFormState.ReviewChanges:
                     break;
                 case BackupFormState.PerformingChanges:
                     break;
@@ -191,10 +224,15 @@ namespace LocalBackup.Forms
 
         private class FindChangesTask
         {
+            private const int MinRefreshInterval = 500;
+
+            private static Color s_red  = Color.FromArgb(0xFF, 0xE0, 0xE0);
+            private static Color s_yellow = Color.FromArgb(0xFF, 0xFF, 0xE0);
+            private static Color s_green = Color.FromArgb(0xE0, 0xFF, 0xE0);
+
             private BackupForm _backupForm;
             private BufferedDirectoryMirrorer _mirrorer;
-
-            public Task Task { get; private set; }
+            
             private CancellationTokenSource _cts;
 
             public FindChangesTask(BackupForm backupForm)
@@ -294,30 +332,20 @@ namespace LocalBackup.Forms
 
             public async Task Run()
             {
-                if (!SetSourceDirectory(_backupForm._sourceTextBox.Text))
-                    return;
-
-                if (!SetDestinationDirectory(_backupForm._destinationTextBox.Text))
-                    return;
-
-                if (!FindComparer(_backupForm._modeComboBox.SelectedIndex == 0))
-                    return;
-
                 using (_cts = new CancellationTokenSource())
                 {
                     try
                     {
                         _backupForm.SetTitle("Local Backup - Finding changes...");
                         _backupForm.SetState(BackupFormState.FindingChanges);
-                        Task = _mirrorer.RunAsync(SourceDirectory, DestinationDirectory, FileInfoComparer, _cts.Token);
 
-                        await Task;
+                        await _mirrorer.RunAsync(SourceDirectory, DestinationDirectory, FileInfoComparer, _cts.Token);
 
                         if (_mirrorer.ProcessingQueue.Count > 0)
                             FlushQueue();
 
                         _backupForm.SetTitle("Local Backup - Reviewing changes...");
-                        _backupForm.SetState(BackupFormState.ReviewingChanges);
+                        _backupForm.SetState(BackupFormState.ReviewChanges);
                     }
                     catch (OperationCanceledException)
                     {
@@ -427,46 +455,46 @@ namespace LocalBackup.Forms
                 else
                     FlushQueue();
             }
-        }
 
-        private class BufferedDirectoryMirrorer : DirectoryMirrorer
-        {
-            private DateTimeOffset _lastUpdate = DateTimeOffset.MinValue;
-
-            public event EventHandler QueueFlushRequested;
-
-            public Queue<object> ProcessingQueue { get; } = new Queue<object>();
-
-            protected override void OnOperationFound(FileSystemOperation operation)
+            private class BufferedDirectoryMirrorer : DirectoryMirrorer
             {
-                EnqueueItem(operation);
-            }
+                private DateTimeOffset _lastUpdate = DateTimeOffset.MinValue;
 
-            protected override void OnError(Exception ex)
-            {
-                EnqueueItem(ex);
-            }
+                public event EventHandler QueueFlushRequested;
 
-            private void EnqueueItem(object item)
-            {
-                ProcessingQueue.Enqueue(item);
+                public Queue<object> ProcessingQueue { get; } = new Queue<object>();
 
-                var now = DateTimeOffset.UtcNow;
-
-                if ((now - _lastUpdate).TotalMilliseconds >= 500)
+                protected override void OnOperationFound(FileSystemOperation operation)
                 {
-                    QueueFlushRequested?.Invoke(this, EventArgs.Empty);
+                    EnqueueItem(operation);
+                }
 
-                    _lastUpdate = now;
+                protected override void OnError(Exception ex)
+                {
+                    EnqueueItem(ex);
+                }
+
+                private void EnqueueItem(object item)
+                {
+                    ProcessingQueue.Enqueue(item);
+
+                    var now = DateTimeOffset.UtcNow;
+
+                    if ((now - _lastUpdate).TotalMilliseconds >= MinRefreshInterval)
+                    {
+                        QueueFlushRequested?.Invoke(this, EventArgs.Empty);
+
+                        _lastUpdate = now;
+                    }
                 }
             }
-        }
 
-        private static class Colors
-        {
-            public static Color Red { get; } = Color.FromArgb(0xFF, 0xE0, 0xE0);
-            public static Color Yellow { get; } = Color.FromArgb(0xFF, 0xFF, 0xE0);
-            public static Color Green { get; } = Color.FromArgb(0xE0, 0xFF, 0xE0);
+            private static class Colors
+            {
+                public static Color Red { get; } = Color.FromArgb(0xFF, 0xE0, 0xE0);
+                public static Color Yellow { get; } = Color.FromArgb(0xFF, 0xFF, 0xE0);
+                public static Color Green { get; } = Color.FromArgb(0xE0, 0xFF, 0xE0);
+            }
         }
     }
 }
