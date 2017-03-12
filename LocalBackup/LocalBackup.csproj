@@ -57,6 +57,7 @@
     </Compile>
     <Compile Include="Extensions\IListEx.cs" />
     <Compile Include="Extensions\StreamEx.cs" />
+    <Compile Include="Extensions\TimeSpanEx.cs" />
     <Compile Include="IO\DuplicateFinderState.cs" />
     <Compile Include="Forms\BackupForm.cs">
       <SubType>Form</SubType>

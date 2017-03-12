@@ -143,7 +143,7 @@ namespace LocalBackup.IO
             {
                 var equalFiles = 1;
 
-                for (int j = i + 1; j < length; j++)
+                for (var j = i + 1; j < length; j++)
                 {
                     var f1 = _files[start + i];
                     var f2 = _files[start + j];
@@ -193,7 +193,7 @@ namespace LocalBackup.IO
             
             public void AddDirectories(IEnumerable<DirectoryInfo> dirs)
             {
-                foreach (DirectoryInfo dir in dirs)
+                foreach (var dir in dirs)
                 {
                     _df._token.ThrowIfCancellationRequested();
 
@@ -278,7 +278,7 @@ namespace LocalBackup.IO
 
                     for (var i = 0; i < _fileStreams;)
                     {
-                        int equalFiles = GetEqualFiles(i);
+                        var equalFiles = GetEqualFiles(i);
 
                         if (equalFiles > 1)
                             _df.MarkAsDuplicates(_start + i, equalFiles);
@@ -318,7 +318,7 @@ namespace LocalBackup.IO
 
                 var equalFiles = 1;
 
-                for (int j = i + 1; j < _fileStreams; j++)
+                for (var j = i + 1; j < _fileStreams; j++)
                 {
                     var f2 = GetFileInfo(j);
                     var fs2 = GetFileStream(j);

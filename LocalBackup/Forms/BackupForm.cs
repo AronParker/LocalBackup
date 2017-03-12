@@ -7,6 +7,7 @@ using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using LocalBackup.Extensions;
 using LocalBackup.IO;
 using LocalBackup.IO.FileComparers;
 using LocalBackup.IO.Operations;
@@ -25,8 +26,10 @@ namespace LocalBackup.Forms
         private BackupFormState _state;
 
         private FindChangesTask _findChangesTask;
+        private PerformChangesTask _performChangesTask;
 
         private Task _currentTask;
+        private CancellationTokenSource _cts;
         
         public BackupForm()
         {
@@ -36,6 +39,7 @@ namespace LocalBackup.Forms
             SetState(BackupFormState.Idle);
 
             _findChangesTask = new FindChangesTask(this);
+            _performChangesTask = new PerformChangesTask(this);
         }
 
         private enum BackupFormState
@@ -53,18 +57,15 @@ namespace LocalBackup.Forms
             switch (_state)
             {
                 case BackupFormState.FindingChanges:
-                    e.Cancel = true;
-
-                    if (MessageBox.Show("Are you sure you want to cancel finding changes?", "Confirm Cancelation", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
-                        return;
-
-                    _findChangesTask.Cancel();
-                    await _currentTask;
-                    Close();
-                    break;
                 case BackupFormState.PerformingChanges:
                     e.Cancel = true;
 
+                    if (MessageBox.Show("Are you sure you want to cancel?", "Confirm Cancelation", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                        return;
+
+                    _cts.Cancel();
+                    await _currentTask;
+                    Close();
                     break;
                 case BackupFormState.Canceling:
                     e.Cancel = true;
@@ -211,10 +212,20 @@ namespace LocalBackup.Forms
                     if (!_findChangesTask.FindComparer(_modeComboBox.SelectedIndex == 0))
                         return;
 
-                    _currentTask = _findChangesTask.Run();
-                    await _currentTask;
+                    using (_cts = new CancellationTokenSource())
+                    {
+                        _currentTask = _findChangesTask.Run(_cts.Token);
+                        await _currentTask;
+                    }
                     break;
                 case BackupFormState.ReviewChanges:
+                    _performChangesTask.Init();
+
+                    using (_cts = new CancellationTokenSource())
+                    {
+                        _currentTask = _performChangesTask.Run(_cts.Token);
+                        await _currentTask;
+                    }
                     break;
                 case BackupFormState.Done:
                     SetState(BackupFormState.Idle);
@@ -231,38 +242,31 @@ namespace LocalBackup.Forms
                     Close();
                     break;
                 case BackupFormState.FindingChanges:
-                    _findChangesTask.Cancel();
+                case BackupFormState.PerformingChanges:
+                    _cts.Cancel();
+                    SetState(BackupFormState.Canceling);
                     break;
                 case BackupFormState.ReviewChanges:
                     SetState(BackupFormState.Idle);
                     break;
-                case BackupFormState.PerformingChanges:
-                    break;
-                case BackupFormState.Canceling:
-                    break;
-                default:
-                    break;
             }
         }
 
-        private struct FindChangesTask
+        private class FindChangesTask
         {
             private BackupForm _backupForm;
-            private BufferedDirectoryMirrorer _mirrorer;
+            private QueuedDirectoryMirrorer _mirrorer;
             private DirectoryInfo _sourceDirectory;
             private DirectoryInfo _destinationDirectory;
             private IFileInfoEqualityComparer _fileInfoComparer;
-            private CancellationTokenSource _cts;
 
-            public FindChangesTask(BackupForm backupForm) : this()
+            public FindChangesTask(BackupForm backupForm)
             {
                 _backupForm = backupForm;
-                _mirrorer = new BufferedDirectoryMirrorer();
-
-                _mirrorer.QueueFlushRequested += Mirrorer_QueueFlushRequested;
+                _mirrorer = new QueuedDirectoryMirrorer();
+                _mirrorer.FlushRequested += Mirrorer_FlushRequested;
             }
-
-
+            
             public bool SetSourceDirectory(string sourceDirectory)
             {
                 try
@@ -346,33 +350,24 @@ namespace LocalBackup.Forms
                 return true;
             }
 
-            public async Task Run()
+            public async Task Run(CancellationToken ct)
             {
-                using (_cts = new CancellationTokenSource())
+                try
                 {
-                    try
-                    {
-                        _backupForm.SetState(BackupFormState.FindingChanges);
+                    _backupForm.SetState(BackupFormState.FindingChanges);
 
-                        await _mirrorer.RunAsync(_sourceDirectory, _destinationDirectory, _fileInfoComparer, _cts.Token);
+                    await _mirrorer.RunAsync(_sourceDirectory, _destinationDirectory, _fileInfoComparer, ct);
 
-                        if (_mirrorer.ProcessingQueue.Count > 0)
-                            FlushQueue();
-                        
-                        _backupForm.SetState(BackupFormState.ReviewChanges);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        _backupForm.Text = "Backup Utility - Canceled";
-                        _backupForm.SetState(BackupFormState.Done);
-                    }
+                    if (_mirrorer.ProcessingQueue.Count > 0)
+                        FlushQueue();
+
+                    _backupForm.SetState(BackupFormState.ReviewChanges);
                 }
-            }
-
-            public void Cancel()
-            {
-                _cts.Cancel();
-                _backupForm.SetState(BackupFormState.Canceling);
+                catch (OperationCanceledException)
+                {
+                    _backupForm.Text = "Backup Utility - Canceled";
+                    _backupForm.SetState(BackupFormState.Done);
+                }
             }
 
             private string GetDestinationFileSystem()
@@ -417,38 +412,48 @@ namespace LocalBackup.Forms
                     switch (item)
                     {
                         case FileSystemOperation op:
-                            lvi = new ListViewItem(new string[] { op.Name, op.FileName, op.FilePath, string.Empty });
+                            Color backColor;
 
                             switch (op.Type)
                             {
                                 case FileSystemOperationType.CreateDirectory:
                                 case FileSystemOperationType.CopyFile:
-                                    lvi.BackColor = s_green;
+                                    backColor = s_green;
                                     break;
                                 case FileSystemOperationType.EditDirectory:
                                 case FileSystemOperationType.EditFile:
-                                    lvi.BackColor = s_yellow;
+                                    backColor = s_yellow;
                                     break;
                                 case FileSystemOperationType.DestroyDirectory:
                                 case FileSystemOperationType.DeleteFile:
-                                    lvi.BackColor = s_red;
+                                    backColor = s_red;
                                     break;
+                                default:
+                                    throw new NotSupportedException();
                             }
 
-                            lvi.ImageIndex = (int)op.Type;
-                            lvi.Tag = op;
+                            lvi = new ListViewItem(new string[] { op.Name, op.FileName, op.FilePath, string.Empty })
+                            {
+                                BackColor = backColor,
+                                ImageIndex = (int)op.Type,
+                                Tag = op
+                            };
                             break;
                         case FileException ex:
-                            lvi = new ListViewItem(new string[] { "File error", ex.File.Name, ex.File.FullName, ex.Message });
-                            lvi.BackColor = s_red;
-                            lvi.ImageIndex = 6;
-                            lvi.Tag = ex;
+                            lvi = new ListViewItem(new string[] { "File error", ex.File.Name, ex.File.FullName, ex.Message })
+                            {
+                                BackColor = s_red,
+                                ImageIndex = 6,
+                                Tag = ex
+                            };
                             break;
                         case DirectoryException ex:
-                            lvi = new ListViewItem(new string[] { "Directory error", ex.Directory.Name, ex.Directory.FullName, ex.Message });
-                            lvi.BackColor = s_red;
-                            lvi.ImageIndex = 7;
-                            lvi.Tag = ex;
+                            lvi = new ListViewItem(new string[] { "Directory error", ex.Directory.Name, ex.Directory.FullName, ex.Message })
+                            {
+                                BackColor = s_red,
+                                ImageIndex = 7,
+                                Tag = ex
+                            };
                             break;
                         default:
                             throw new NotSupportedException();
@@ -459,9 +464,15 @@ namespace LocalBackup.Forms
 
                 _mirrorer.ProcessingQueue.Clear();
                 _backupForm._operationsListViewEx.VirtualListSize = _backupForm._items.Count;
+
+                if (_backupForm._autoScrollCheckBox.Checked)
+                {
+                    var lastIndex = _backupForm._items.Count - 1;
+                    _backupForm._operationsListViewEx.EnsureVisible(lastIndex);
+                }
             }
 
-            private void Mirrorer_QueueFlushRequested(object sender, EventArgs e)
+            private void Mirrorer_FlushRequested(object sender, EventArgs e)
             {
                 if (_backupForm.InvokeRequired)
                     _backupForm.Invoke((MethodInvoker)FlushQueue);
@@ -469,11 +480,11 @@ namespace LocalBackup.Forms
                     FlushQueue();
             }
 
-            private class BufferedDirectoryMirrorer : DirectoryMirrorer
+            private class QueuedDirectoryMirrorer : DirectoryMirrorer
             {
                 private DateTimeOffset _lastUpdate = DateTimeOffset.MinValue;
 
-                public event EventHandler QueueFlushRequested;
+                public event EventHandler FlushRequested;
 
                 public Queue<object> ProcessingQueue { get; } = new Queue<object>();
 
@@ -495,10 +506,228 @@ namespace LocalBackup.Forms
 
                     if ((now - _lastUpdate).TotalMilliseconds >= MinRefreshInterval)
                     {
-                        QueueFlushRequested?.Invoke(this, EventArgs.Empty);
+                        FlushRequested?.Invoke(this, EventArgs.Empty);
 
                         _lastUpdate = now;
                     }
+                }
+            }
+        }
+
+        private class PerformChangesTask
+        {
+            private BackupForm _backupForm;
+            private List<ChangeResult> _queue = new List<ChangeResult>();
+            private DateTimeOffset _lastUpdate;
+            private long _processedWeight;
+            private long _totalWeight;
+
+            private DateTimeOffset _start;
+
+            public PerformChangesTask(BackupForm backupForm)
+            {
+                _backupForm = backupForm;
+            }
+
+            public void Init()
+            {
+                _queue.Clear();
+                _lastUpdate = DateTimeOffset.MinValue;
+
+                _processedWeight = 0;
+                _totalWeight = 0;
+                
+                _backupForm._operationsListViewEx.BeginUpdate();
+                foreach (var item in _backupForm._items)
+                {
+                    if (item.Tag is FileSystemOperation op)
+                    {
+                        MarkItemPending(item);
+                        _totalWeight += op.Weight;
+                    }
+                    else if (item.Tag is FileException || item.Tag is DirectoryException)
+                    {
+                        MarkItemException(item);
+                    }
+                }
+                _backupForm._operationsListViewEx.EndUpdate();
+            }
+
+            public async Task Run(CancellationToken ct)
+            {
+                try
+                {
+                    _backupForm.SetState(BackupFormState.PerformingChanges);
+
+                    await Task.Run(() => PerformChanges(ct));
+
+                    var changes = _backupForm._items.Count;
+                    var elapsed = DateTimeOffset.UtcNow - _start;
+
+                    _backupForm.Text = FormattableString.Invariant($"Backup Utility - {changes} changes performed in {elapsed.ToHumanReadableString()}");
+                    _backupForm.SetState(BackupFormState.Done);
+                }
+                catch (OperationCanceledException)
+                {
+                    _backupForm.Text = "Backup Utility - Canceled";
+                    _backupForm.SetState(BackupFormState.Done);
+                }
+            }
+
+            private void PerformChanges(CancellationToken ct)
+            {
+                _start = DateTimeOffset.UtcNow;
+
+                for (var i = 0; i < _backupForm._items.Count; i++)
+                {
+                    ct.ThrowIfCancellationRequested();
+
+                    if (_backupForm._items[i].Tag is FileSystemOperation op)
+                        ProcessOperation(i, op);
+
+                    if (_queue.Count == 0)
+                        continue;
+
+                    var now = DateTimeOffset.UtcNow;
+
+                    if ((now - _lastUpdate).TotalMilliseconds >= MinRefreshInterval)
+                    {
+                        RequestUpdate();
+
+                        _lastUpdate = now;
+                    }
+                }
+
+                if (_queue.Count > 0)
+                    RequestUpdate();
+            }
+
+            private void RequestUpdate()
+            {
+                if (_backupForm.InvokeRequired)
+                    _backupForm.Invoke((MethodInvoker)Update);
+                else
+                    Update();
+            }
+
+            private void ProcessOperation(int index, FileSystemOperation op)
+            {
+                try
+                {
+                    op.Perform();
+                    _queue.Add(new ChangeResult(index, null));
+
+                    _processedWeight += op.Weight;
+                }
+                catch (Exception ex) when (ex is IOException ||
+                                           ex is UnauthorizedAccessException ||
+                                           ex is SecurityException)
+                {
+                    _queue.Add(new ChangeResult(index, ex));
+                }
+            }
+
+            private void Update()
+            {
+                Debug.Assert(_queue.Count > 0);
+
+                FlushQueue();
+                AutoScroll();
+                UpdateProgress();
+            }
+
+            private void FlushQueue()
+            {
+                _backupForm._operationsListViewEx.BeginUpdate();
+                foreach (var result in _queue)
+                {
+                    var item = _backupForm._items[result.Index];
+
+                    if (result.Exception == null)
+                        MarkItemSuccess(item);
+                    else
+                        MarkItemFailure(item, result.Exception);
+                }
+                _backupForm._operationsListViewEx.EndUpdate();
+
+                _queue.Clear();
+            }
+
+            private void AutoScroll()
+            {
+                if (_backupForm._autoScrollCheckBox.Checked)
+                {
+                    var lastIndex = _backupForm._items.Count - 1;
+                    _backupForm._operationsListViewEx.EnsureVisible(lastIndex);
+                }
+            }
+
+            private void UpdateProgress()
+            {
+                var percentage = (double)_processedWeight / _totalWeight;
+
+                if (percentage > .1)
+                {
+                    var elapsed = DateTimeOffset.UtcNow - _start;
+                    var remaining = new TimeSpan((long)(elapsed.Ticks / percentage));
+
+                    _backupForm.Text = $"Backup Utility - Performing changes ({remaining.ToHumanReadableString()}) left)";
+                }
+
+                _backupForm._progressBar.Value = (int)(percentage * 10000);
+            }
+
+            private static void MarkItemPending(ListViewItem item)
+            {
+                item.BackColor = Color.FromKnownColor(KnownColor.Window);
+                item.SubItems[3].Text = "Pending to perform...";
+            }
+
+            private static void MarkItemSuccess(ListViewItem item)
+            {
+                item.BackColor = s_green;
+                item.SubItems[3].Text = "Operation completed successfully.";
+            }
+
+            private static void MarkItemFailure(ListViewItem item, Exception ex)
+            {
+                item.BackColor = s_red;
+                item.SubItems[3].Text = ex.Message;
+
+                var op = (FileSystemOperation)item.Tag;
+
+                switch (op.Type)
+                {
+                    case FileSystemOperationType.CreateDirectory:
+                    case FileSystemOperationType.EditDirectory:
+                    case FileSystemOperationType.DestroyDirectory:
+                        item.ImageIndex = 6;
+                        break;
+                    case FileSystemOperationType.CopyFile:
+                    case FileSystemOperationType.EditFile:
+                    case FileSystemOperationType.DeleteFile:
+                        item.ImageIndex = 7;
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            private static void MarkItemException(ListViewItem item)
+            {
+                item.BackColor = s_yellow;
+            }
+            
+            
+            private struct ChangeResult
+            {
+                public int Index { get; }
+                public Exception Exception { get; }
+
+                public ChangeResult(int index, Exception ex)
+                {
+                    Index = index;
+                    Exception = ex;
                 }
             }
         }

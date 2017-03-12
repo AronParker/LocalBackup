@@ -69,6 +69,7 @@
             this._progressBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this._progressBar.Location = new System.Drawing.Point(12, 12);
+            this._progressBar.Maximum = 10000;
             this._progressBar.Name = "_progressBar";
             this._progressBar.Size = new System.Drawing.Size(508, 26);
             this._progressBar.TabIndex = 2;
