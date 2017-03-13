@@ -68,14 +68,14 @@
     </Compile>
     <Compile Include="IO\DirectoryException.cs" />
     <Compile Include="IO\DuplicateFinder.cs" />
-    <Compile Include="IO\FileComparers\FATFileComparer.cs" />
-    <Compile Include="IO\FileComparers\FileComparer.cs" />
-    <Compile Include="IO\FileComparers\IFileInfoEqualityComparer.cs" />
-    <Compile Include="IO\FileComparers\IFileEqualityComprarer.cs" />
+    <Compile Include="IO\FileEqualityComparers\FATFileEqualityComparer.cs" />
+    <Compile Include="IO\FileEqualityComparers\DefaultFileEqualityComparer.cs" />
+    <Compile Include="IO\FileEqualityComparers\IFileInfoEqualityComparer.cs" />
+    <Compile Include="IO\FileEqualityComparers\IFileEqualityComprarer.cs" />
     <Compile Include="IO\FileInfoEventArgs.cs" />
     <Compile Include="IO\FileInfoEventHandler.cs" />
     <Compile Include="IO\FileException.cs" />
-    <Compile Include="IO\FileComparers\FileInfoComparer.cs" />
+    <Compile Include="IO\FileEqualityComparers\DefaultFileInfoEqualityComparer.cs" />
     <Compile Include="IO\FileInfoEnumerableEventArgs.cs" />
     <Compile Include="IO\FileInfoEnumerableEventHandler.cs" />
     <Compile Include="IO\FileSystem.cs" />

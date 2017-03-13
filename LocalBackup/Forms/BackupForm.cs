@@ -367,7 +367,7 @@ namespace LocalBackup.Forms
                 }
                 else
                 {
-                    _fileInfoComparer = new FileComparer();
+                    _fileInfoComparer = new DefaultFileEqualityComparer();
                 }
 
                 return true;
@@ -441,10 +441,10 @@ namespace LocalBackup.Forms
                     case "FAT":
                     case "FAT32":
                     case "exFAT":
-                        return new FATFileComparer();
+                        return new FATFileEqualityComparer();
                     case "NTFS":
                     default:
-                        return new FileInfoComparer();
+                        return new DefaultFileInfoEqualityComparer();
                 }
             }
 

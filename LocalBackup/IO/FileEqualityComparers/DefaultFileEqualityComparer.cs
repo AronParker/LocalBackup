@@ -1,9 +1,9 @@
 ﻿using System;
 using System.IO;
 
-namespace LocalBackup.IO.FileComparers
+namespace LocalBackup.IO.FileEqualityComparers
 {
-    public class FileComparer : IFileEqualityComprarer
+    public class DefaultFileEqualityComparer : IFileEqualityComprarer
     {
         private const int BufferSize = 512 * 1024;
 

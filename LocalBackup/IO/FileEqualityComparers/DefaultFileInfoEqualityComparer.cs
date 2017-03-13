@@ -1,9 +1,9 @@
 ﻿using System;
 using System.IO;
 
-namespace LocalBackup.IO.FileComparers
+namespace LocalBackup.IO.FileEqualityComparers
 {
-    public class FileInfoComparer : IFileInfoEqualityComparer
+    public class DefaultFileInfoEqualityComparer : IFileInfoEqualityComparer
     {
         public bool Equals(FileInfo f1, FileInfo f2)
         {

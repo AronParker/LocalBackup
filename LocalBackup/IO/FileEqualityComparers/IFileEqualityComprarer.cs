@@ -1,6 +1,6 @@
 ﻿using System.IO;
 
-namespace LocalBackup.IO.FileComparers
+namespace LocalBackup.IO.FileEqualityComparers
 {
     public interface IFileEqualityComprarer : IFileInfoEqualityComparer
     {
