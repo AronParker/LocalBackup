@@ -350,32 +350,24 @@ namespace LocalBackup.Forms
 
             public bool FindComparer(bool quickScan)
             {
-                if (!quickScan)
+                if (quickScan)
+                {
+                    var fileSystem = GetDestinationFileSystem();
+
+                    if (fileSystem == null)
+                    {
+                        MessageBox.Show("Failed to detect destination file system.",
+                                        "Unknown file system",
+                                        MessageBoxButtons.OK,
+                                        MessageBoxIcon.Error);
+                        return false;
+                    }
+
+                    _fileInfoComparer = CreateQuickScanComparer(fileSystem);
+                }
+                else
                 {
                     _fileInfoComparer = new FileComparer();
-                    return true;
-                }
-
-                var fileSystem = GetDestinationFileSystem();
-
-                if (fileSystem == null)
-                {
-                    MessageBox.Show("Failed to detect destination file system.",
-                                    "Unknown file system",
-                                    MessageBoxButtons.OK,
-                                    MessageBoxIcon.Error);
-                    return false;
-                }
-
-                _fileInfoComparer = CreateQuickScanComparer(fileSystem);
-
-                if (_fileInfoComparer == null)
-                {
-                    MessageBox.Show("Destination directory uses a file system where quick scan is not supported.",
-                                    "Unsupported file system",
-                                    MessageBoxButtons.OK,
-                                    MessageBoxIcon.Error);
-                    return false;
                 }
 
                 return true;
@@ -446,13 +438,13 @@ namespace LocalBackup.Forms
             {
                 switch (fileSystem)
                 {
+                    case "FAT":
                     case "FAT32":
                     case "exFAT":
                         return new FATFileComparer();
                     case "NTFS":
-                        return new NTFSFileComparer();
                     default:
-                        return null;
+                        return new FileInfoComparer();
                 }
             }
 

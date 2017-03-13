@@ -3,7 +3,7 @@ using System.IO;
 
 namespace LocalBackup.IO.FileComparers
 {
-    public class NTFSFileComparer : IFileInfoEqualityComparer
+    public class FileInfoComparer : IFileInfoEqualityComparer
     {
         public bool Equals(FileInfo f1, FileInfo f2)
         {

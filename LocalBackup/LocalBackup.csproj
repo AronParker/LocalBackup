@@ -31,6 +31,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>folder_go.ico</ApplicationIcon>
@@ -74,7 +75,7 @@
     <Compile Include="IO\FileInfoEventArgs.cs" />
     <Compile Include="IO\FileInfoEventHandler.cs" />
     <Compile Include="IO\FileException.cs" />
-    <Compile Include="IO\FileComparers\NTFSFileComparer.cs" />
+    <Compile Include="IO\FileComparers\FileInfoComparer.cs" />
     <Compile Include="IO\FileInfoEnumerableEventArgs.cs" />
     <Compile Include="IO\FileInfoEnumerableEventHandler.cs" />
     <Compile Include="IO\FileSystem.cs" />
