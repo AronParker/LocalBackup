@@ -392,7 +392,7 @@ namespace LocalBackup.Forms
                     if (_backupForm._items.Count == 0)
                     {
                         _backupForm.SetState(BackupFormState.Idle);
-                        MessageBox.Show("Source and destination directory are identical.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        DisplayDirectoriesEqual();
                     }
                     else
                     {
@@ -407,9 +407,18 @@ namespace LocalBackup.Forms
                 }
             }
 
+            private static void DisplayDirectoriesEqual()
+            {
+                MessageBox.Show("Source and destination directory are identical.",
+                                "Info",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Information);
+            }
+
             private void DisplayErrors()
             {
-                var errors = _backupForm._items.Count(x => x.Tag is FileException || x.Tag is DirectoryException);
+                var errors = _backupForm._items.Count(x => x.Tag is FileException ||
+                                                           x.Tag is DirectoryException);
 
                 if (errors == 0)
                     return;
@@ -453,11 +462,7 @@ namespace LocalBackup.Forms
                 Debug.Assert(_mirrorer.ProcessingQueue.Count > 0);
 
                 foreach (var item in _mirrorer.ProcessingQueue)
-                {
-                    var lvi = CreateListViewItem(item);
-                    
-                    _backupForm._items.Add(lvi);
-                }
+                    _backupForm._items.Add(CreateListViewItem(item));
 
                 _backupForm._operationsListViewEx.VirtualListSize = _backupForm._items.Count;
                 _mirrorer.ProcessingQueue.Clear();
@@ -626,12 +631,8 @@ namespace LocalBackup.Forms
 
                     await Task.Run(() => PerformChanges(ct));
 
-                    var changes = _backupForm._items.Count(x => x.Tag is FileSystemOperation);
-                    var elapsed = DateTimeOffset.UtcNow - _start;
-
-                    _backupForm.Text = FormattableString.Invariant($"Backup Utility - {changes} change(s) performed in {elapsed.ToHumanReadableString()}");
                     _backupForm.SetState(BackupFormState.Done);
-
+                    DisplayChangesAndElapsed();
                     DisplayErrors();
                 }
                 catch (OperationCanceledException)
@@ -639,6 +640,15 @@ namespace LocalBackup.Forms
                     _backupForm.Text = "Backup Utility - Canceled";
                     _backupForm.SetState(BackupFormState.Done);
                 }
+            }
+
+            private void DisplayChangesAndElapsed()
+            {
+                var changes = _backupForm._items.Count(x => x.Tag is FileSystemOperation);
+                var elapsed = DateTimeOffset.UtcNow - _start;
+
+                _backupForm.Text = FormattableString.Invariant($"Backup Utility - {changes} change(s) performed in {elapsed.ToHumanReadableString()}");
+
             }
 
             private void DisplayErrors()
