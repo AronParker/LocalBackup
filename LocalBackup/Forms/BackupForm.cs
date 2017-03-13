@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using LocalBackup.Extensions;
 using LocalBackup.IO;
-using LocalBackup.IO.FileComparers;
+using LocalBackup.IO.FileEqualityComparers;
 using LocalBackup.IO.Operations;
 namespace LocalBackup.Forms
 {

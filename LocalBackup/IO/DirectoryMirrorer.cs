@@ -4,7 +4,7 @@ using System.IO;
 using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
-using LocalBackup.IO.FileComparers;
+using LocalBackup.IO.FileEqualityComparers;
 using LocalBackup.IO.Operations;
 
 namespace LocalBackup.IO
