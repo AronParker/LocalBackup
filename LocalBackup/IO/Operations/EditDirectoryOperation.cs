@@ -9,8 +9,7 @@ namespace LocalBackup.IO.Operations
             FileSystemInfo = fsi;
             Attributes = attributes;
         }
-
-        public override string OperationName => "Edit attributes";
+        
         public override string FileName => FileSystemInfo.Name;
         public override string FilePath => FileSystemInfo.FullName;
         public FileSystemInfo FileSystemInfo { get; }

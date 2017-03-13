@@ -41,10 +41,10 @@
             this._sourceButton = new System.Windows.Forms.Button();
             this._destinationButton = new System.Windows.Forms.Button();
             this._operationsListViewEx = new LocalBackup.Controls.ListViewEx();
-            this.operationType = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.operationFileName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.operationFilePath = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.operationResult = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this._operationType = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this._operationFileName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this._operationFilePath = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this._operationResult = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this._operationsImageList = new System.Windows.Forms.ImageList(this.components);
             this._menuStrip = new System.Windows.Forms.MenuStrip();
             this._optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -166,10 +166,10 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this._operationsListViewEx.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.operationType,
-            this.operationFileName,
-            this.operationFilePath,
-            this.operationResult});
+            this._operationType,
+            this._operationFileName,
+            this._operationFilePath,
+            this._operationResult});
             this._operationsListViewEx.FullRowSelect = true;
             this._operationsListViewEx.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
             this._operationsListViewEx.Location = new System.Drawing.Point(12, 86);
@@ -182,25 +182,25 @@
             this._operationsListViewEx.VirtualMode = true;
             this._operationsListViewEx.RetrieveVirtualItem += new System.Windows.Forms.RetrieveVirtualItemEventHandler(this.OperationsListView_RetrieveVirtualItem);
             // 
-            // operationType
+            // _operationType
             // 
-            this.operationType.Text = "Operation type";
-            this.operationType.Width = 120;
+            this._operationType.Text = "Operation type";
+            this._operationType.Width = 120;
             // 
-            // operationFileName
+            // _operationFileName
             // 
-            this.operationFileName.Text = "File name";
-            this.operationFileName.Width = 150;
+            this._operationFileName.Text = "File name";
+            this._operationFileName.Width = 150;
             // 
-            // operationFilePath
+            // _operationFilePath
             // 
-            this.operationFilePath.Text = "File path";
-            this.operationFilePath.Width = 286;
+            this._operationFilePath.Text = "File path";
+            this._operationFilePath.Width = 286;
             // 
-            // operationResult
+            // _operationResult
             // 
-            this.operationResult.Text = "Result";
-            this.operationResult.Width = 200;
+            this._operationResult.Text = "Result";
+            this._operationResult.Width = 200;
             // 
             // _operationsImageList
             // 
@@ -328,10 +328,10 @@
         private System.Windows.Forms.Button _sourceButton;
         private System.Windows.Forms.Button _destinationButton;
         private Controls.ListViewEx _operationsListViewEx;
-        private System.Windows.Forms.ColumnHeader operationType;
-        private System.Windows.Forms.ColumnHeader operationFileName;
-        private System.Windows.Forms.ColumnHeader operationFilePath;
-        private System.Windows.Forms.ColumnHeader operationResult;
+        private System.Windows.Forms.ColumnHeader _operationType;
+        private System.Windows.Forms.ColumnHeader _operationFileName;
+        private System.Windows.Forms.ColumnHeader _operationFilePath;
+        private System.Windows.Forms.ColumnHeader _operationResult;
         private System.Windows.Forms.ProgressBar _progressBar;
         private System.Windows.Forms.Button _cancelButton;
         private System.Windows.Forms.Button _okButton;

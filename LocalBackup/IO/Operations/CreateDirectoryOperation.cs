@@ -10,8 +10,7 @@ namespace LocalBackup.IO.Operations
         {
             _dir = dir;
         }
-
-        public override string OperationName => "Create directory";
+        
         public override string FileName => _dir.Name;
         public override string FilePath => _dir.FullName;
         public DirectoryInfo Directory => _dir;

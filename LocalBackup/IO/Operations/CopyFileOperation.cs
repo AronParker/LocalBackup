@@ -9,8 +9,7 @@ namespace LocalBackup.IO.Operations
             SourceFile = srcFile;
             DestinationFile = dstFile;
         }
-
-        public override string OperationName => "Copy file";
+        
         public override string FileName => DestinationFile.Name;
         public override string FilePath => DestinationFile.FullName;
         public override long Weight => SourceFile.Length / 8192 + 1;

@@ -33,7 +33,7 @@ namespace LocalBackup.Forms
         private static Color s_yellow = Color.FromArgb(0xFF, 0xFF, 0xE0);
         private static Color s_green = Color.FromArgb(0xE0, 0xFF, 0xE0);
 
-        private List<ListViewItem> _items = new List<ListViewItem>();
+        private List<Item> _items = new List<Item>();
         private BackupFormState _state;
 
         private FindChangesTask _findChangesTask;
@@ -364,18 +364,20 @@ namespace LocalBackup.Forms
 
             public bool FindComparer(bool quickScan)
             {
+                bool AssumeNTFS()
+                {
+                    return MessageBox.Show("Failed to detect destination file system. Would you like to perform a quick scan anyway on the assumption that the destination file system is NTFS?",
+                                           "Unknown file system",
+                                           MessageBoxButtons.YesNo,
+                                           MessageBoxIcon.Error) == DialogResult.Yes;
+                }
+
                 if (quickScan)
                 {
                     var fileSystem = GetDestinationFileSystem();
 
-                    if (fileSystem == null)
-                    {
-                        MessageBox.Show("Failed to detect destination file system.",
-                                        "Unknown file system",
-                                        MessageBoxButtons.OK,
-                                        MessageBoxIcon.Error);
+                    if (fileSystem == null && !AssumeNTFS())
                         return false;
-                    }
 
                     _fileInfoComparer = CreateQuickScanComparer(fileSystem);
                 }
@@ -431,8 +433,7 @@ namespace LocalBackup.Forms
 
             private void DisplayErrors()
             {
-                var errors = _backupForm._items.Count(x => x.Tag is FileException ||
-                                                           x.Tag is DirectoryException);
+                var errors = _backupForm._items.Count(x => x.IsFindingChangesError);
 
                 if (errors == 0)
                     return;
@@ -446,13 +447,10 @@ namespace LocalBackup.Forms
                 {
                     return new DriveInfo(_destinationDirectory.FullName).DriveFormat;
                 }
-                catch (Exception ex) when (ex is IOException ||
+                catch (Exception ex) when (ex is ArgumentException ||
+                                           ex is IOException ||
                                            ex is UnauthorizedAccessException)
                 {
-                    MessageBox.Show("Failed to detect destination directory file system.",
-                                    "Failed to detect file system",
-                                    MessageBoxButtons.OK,
-                                    MessageBoxIcon.Error);
                     return null;
                 }
             }
@@ -476,7 +474,7 @@ namespace LocalBackup.Forms
                 Debug.Assert(_mirrorer.ProcessingQueue.Count > 0);
 
                 foreach (var item in _mirrorer.ProcessingQueue)
-                    _backupForm._items.Add(CreateListViewItem(item));
+                    _backupForm._items.Add(Item.Create(item));
 
                 _backupForm._operationsListViewEx.VirtualListSize = _backupForm._items.Count;
                 _mirrorer.ProcessingQueue.Clear();
@@ -485,83 +483,6 @@ namespace LocalBackup.Forms
                 {
                     var lastIndex = _backupForm._items.Count - 1;
                     _backupForm._operationsListViewEx.EnsureVisible(lastIndex);
-                }
-            }
-
-            private ListViewItem CreateListViewItem(object item)
-            {
-                switch (item)
-                {
-                    case FileSystemOperation op:
-                        return CreateListViewItemFromFileSystemOperation(op);
-                    case FileException ex:
-                        return CreateListViewItemFromFileException(ex);
-                    case DirectoryException ex:
-                        return CreateListViewItemFromDirectoryException(ex);
-                    default:
-                        throw new NotSupportedException();
-                }
-            }
-
-            private static ListViewItem CreateListViewItemFromFileSystemOperation(FileSystemOperation op)
-            {
-                var lvi = new ListViewItem(new string[] { op.OperationName, op.FileName, op.FilePath, string.Empty });
-                ApplyBackColorAndImageIndex(lvi, op);
-                lvi.Tag = op;
-
-                return lvi;
-            }
-
-            private static ListViewItem CreateListViewItemFromDirectoryException(DirectoryException ex)
-            {
-                return new ListViewItem(new string[] { "Directory error", ex.Directory.Name, ex.Directory.FullName, ex.Message })
-                {
-                    BackColor = s_red,
-                    ImageIndex = DirectoryExceptionImageIndex,
-                    Tag = ex
-                };
-            }
-
-            private static ListViewItem CreateListViewItemFromFileException(FileException ex)
-            {
-                return new ListViewItem(new string[] { "File error", ex.File.Name, ex.File.FullName, ex.Message })
-                {
-                    BackColor = s_red,
-                    ImageIndex = FileExceptionImageIndex,
-                    Tag = ex
-                };
-            }
-
-            private static void ApplyBackColorAndImageIndex(ListViewItem lvi, FileSystemOperation op)
-            {
-                switch (op)
-                {
-                    case CreateDirectoryOperation _:
-                        lvi.BackColor = s_green;
-                        lvi.ImageIndex = CreateDirectoryImageIndex;
-                        break;
-                    case DestroyDirectoryOperation _:
-                        lvi.BackColor = s_red;
-                        lvi.ImageIndex = DestroyDirectoryImageIndex;
-                        break;
-                    case CopyFileOperation _:
-                        lvi.BackColor = s_green;
-                        lvi.ImageIndex = CopyFileImageIndex;
-                        break;
-                    case EditFileOperation _:
-                        lvi.BackColor = s_yellow;
-                        lvi.ImageIndex = EditFileImageIndex;
-                        break;
-                    case EditAttributesOperation _:
-                        lvi.BackColor = s_yellow;
-                        lvi.ImageIndex = EditAttributesImageIndex;
-                        break;
-                    case DeleteFileOperation _:
-                        lvi.BackColor = s_red;
-                        lvi.ImageIndex = DeleteFileImageIndex;
-                        break;
-                    default:
-                        throw new NotSupportedException();
                 }
             }
 
@@ -638,15 +559,10 @@ namespace LocalBackup.Forms
                 _backupForm._operationsListViewEx.BeginUpdate();
                 foreach (var item in _backupForm._items)
                 {
+                    item.MarkAsPending();
+                    
                     if (item.Tag is FileSystemOperation op)
-                    {
-                        MarkItemPending(item);
                         _totalWeight += op.Weight;
-                    }
-                    else if (item.Tag is FileException || item.Tag is DirectoryException)
-                    {
-                        MarkItemException(item);
-                    }
                 }
                 _backupForm._operationsListViewEx.EndUpdate();
             }
@@ -681,7 +597,7 @@ namespace LocalBackup.Forms
 
             private void DisplayErrors()
             {
-                var errors = _backupForm._items.Count(x => x.BackColor == s_red);
+                var errors = _backupForm._items.Count(x => x.IsPerformingChangesError);
 
                 if (errors == 0)
                     return;
@@ -759,9 +675,9 @@ namespace LocalBackup.Forms
                     var item = _backupForm._items[result.Index];
 
                     if (result.Exception == null)
-                        MarkItemSuccess(item);
+                        item.MarkSuccess();
                     else
-                        MarkItemFailure(item, result.Exception);
+                        item.MarkFailure(result.Exception);
                 }
                 _backupForm._operationsListViewEx.EndUpdate();
 
@@ -793,51 +709,6 @@ namespace LocalBackup.Forms
 
                 _backupForm._progressBar.Value = (int)(percentage * 10000);
             }
-
-            private static void MarkItemPending(ListViewItem item)
-            {
-                item.BackColor = Color.FromKnownColor(KnownColor.Window);
-                item.SubItems[3].Text = "Pending to perform...";
-            }
-
-            private static void MarkItemSuccess(ListViewItem item)
-            {
-                item.BackColor = s_green;
-                item.SubItems[3].Text = "Operation completed successfully.";
-            }
-
-            private static void MarkItemFailure(ListViewItem item, Exception ex)
-            {
-                item.BackColor = s_red;
-                item.SubItems[3].Text = ex.Message;
-
-                var op = (FileSystemOperation)item.Tag;
-
-                switch (op)
-                {
-                    case CreateDirectoryOperation _:
-                    case DestroyDirectoryOperation _:
-                        item.ImageIndex = DirectoryExceptionImageIndex;
-                        break;
-                    case CopyFileOperation _:
-                    case EditFileOperation _:
-                    case DeleteFileOperation _:
-                        item.ImageIndex = FileExceptionImageIndex;
-                        break;
-                    case EditAttributesOperation editOp:
-                        if (editOp.FileSystemInfo is DirectoryInfo _)
-                            item.ImageIndex = DirectoryExceptionImageIndex;
-                        else if (editOp.FileSystemInfo is FileInfo _)
-                            item.ImageIndex = FileExceptionImageIndex;
-
-                        break;
-                }
-            }
-
-            private static void MarkItemException(ListViewItem item)
-            {
-                item.BackColor = s_yellow;
-            }
             
             private struct ChangeResult
             {
@@ -852,44 +723,127 @@ namespace LocalBackup.Forms
             }
         }
 
-        private abstract class SpecialListViewItem : ListViewItem
+        private class Item : ListViewItem
         {
-            public SpecialListViewItem(string[] items) : base(items)
+            public Item(string[] items) : base(items)
             {
             }
 
-            public abstract void MarkAsPending();
-        }
+            public bool IsFindingChangesError => !(Tag is FileSystemOperation);
+            public bool IsPerformingChangesError { get; private set; } = false;
 
-        private class OperationListViewItem : SpecialListViewItem
-        {
-            public OperationListViewItem(string[] items, FileSystemOperation op) : base(items)
+            public static Item Create(object item)
             {
-                Operation = op;
+                Item lvi;
+
+                switch (item)
+                {
+                    case FileSystemOperation op:
+                        lvi = Create(op);
+                        break;
+                    case FileException ex:
+                        lvi = Create(ex);
+                        break;
+                    case DirectoryException ex:
+                        lvi = Create(ex);
+                        break;
+                    default:
+                        throw new NotSupportedException();
+                }
+
+                lvi.Tag = item;
+
+                return lvi;
             }
 
-            public FileSystemOperation Operation { get; }
-            public bool Succeeded { get; private set; }
-            
-            public override void MarkAsPending()
+            public static Item Create(FileSystemOperation op)
             {
-                BackColor = Color.FromKnownColor(KnownColor.Window);
-                SubItems[3].Text = "Pending to perform...";
+                var lvi = new Item(new string[] { string.Empty, op.FileName, op.FilePath, string.Empty });
+
+                switch (op)
+                {
+                    case CreateDirectoryOperation _:
+                        lvi.Text = "Create directory";
+                        lvi.BackColor = s_green;
+                        lvi.ImageIndex = CreateDirectoryImageIndex;
+                        break;
+                    case DestroyDirectoryOperation _:
+                        lvi.Text = "Destroy directory";
+                        lvi.BackColor = s_red;
+                        lvi.ImageIndex = DestroyDirectoryImageIndex;
+                        break;
+                    case CopyFileOperation _:
+                        lvi.Text = "Copy file";
+                        lvi.BackColor = s_green;
+                        lvi.ImageIndex = CopyFileImageIndex;
+                        break;
+                    case EditFileOperation _:
+                        lvi.Text = "Edit file";
+                        lvi.BackColor = s_yellow;
+                        lvi.ImageIndex = EditFileImageIndex;
+                        break;
+                    case EditAttributesOperation _:
+                        lvi.Text = "Edit attributes";
+                        lvi.BackColor = s_yellow;
+                        lvi.ImageIndex = EditAttributesImageIndex;
+                        break;
+                    case DeleteFileOperation _:
+                        lvi.Text = "Delete file";
+                        lvi.BackColor = s_red;
+                        lvi.ImageIndex = DeleteFileImageIndex;
+                        break;
+                    default:
+                        throw new NotSupportedException();
+                }
+
+                return lvi;
             }
 
-            private void MarkItemSuccess()
+            public static Item Create(DirectoryException ex)
+            {
+                return new Item(new string[] { "Directory error", ex.Directory.Name, ex.Directory.FullName, ex.Message })
+                {
+                    BackColor = s_red,
+                    ImageIndex = DirectoryExceptionImageIndex,
+                };
+            }
+
+            public static Item Create(FileException ex)
+            {
+                return new Item(new string[] { "File error", ex.File.Name, ex.File.FullName, ex.Message })
+                {
+                    BackColor = s_red,
+                    ImageIndex = FileExceptionImageIndex,
+                };
+            }
+
+            public void MarkAsPending()
+            {
+                if (Tag is FileSystemOperation)
+                {
+                    BackColor = Color.FromKnownColor(KnownColor.Window);
+                    SubItems[3].Text = "Pending to perform...";
+                }
+                else
+                {
+                    BackColor = s_yellow;
+                }
+            }
+
+
+            public void MarkSuccess()
             {
                 BackColor = s_green;
                 SubItems[3].Text = "Operation completed successfully.";
-                Succeeded = true;
+                IsPerformingChangesError = false;
             }
 
-            private void MarkItemFailure(Exception ex)
+            public void MarkFailure(Exception ex)
             {
                 BackColor = s_red;
                 SubItems[3].Text = ex.Message;
 
-                switch (Operation)
+                switch (Tag)
                 {
                     case CreateDirectoryOperation _:
                     case DestroyDirectoryOperation _:
@@ -900,33 +854,17 @@ namespace LocalBackup.Forms
                     case DeleteFileOperation _:
                         ImageIndex = FileExceptionImageIndex;
                         break;
-                    case EditAttributesOperation editOp:
-                        if (editOp.FileSystemInfo is DirectoryInfo _)
+                    case EditAttributesOperation op:
+                        if (op.FileSystemInfo is DirectoryInfo _)
                             ImageIndex = DirectoryExceptionImageIndex;
-                        else if (editOp.FileSystemInfo is FileInfo _)
+                        else if (op.FileSystemInfo is FileInfo _)
                             ImageIndex = FileExceptionImageIndex;
 
                         break;
                 }
 
-                Succeeded = false;
+                IsPerformingChangesError = true;
             }
         }
-
-        private class ExceptionListViewItem : SpecialListViewItem
-        {
-            public ExceptionListViewItem(string[] items, Exception ex) : base(items)
-            {
-                Exception = ex;
-            }
-
-            public Exception Exception { get; }
-
-            public override void MarkAsPending()
-            {
-                BackColor = s_yellow;
-            }
-        }
-
     }
 }

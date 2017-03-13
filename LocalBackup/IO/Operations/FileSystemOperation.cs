@@ -2,7 +2,6 @@
 {
     public abstract class FileSystemOperation
     {
-        public abstract string OperationName { get; }
         public abstract string FileName { get; }
         public abstract string FilePath { get; }
         public virtual long Weight => 1;
