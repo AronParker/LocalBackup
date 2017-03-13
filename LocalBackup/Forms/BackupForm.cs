@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -35,8 +36,7 @@ namespace LocalBackup.Forms
         public BackupForm()
         {
             InitializeComponent();
-
-            _modeComboBox.SelectedIndex = 0;
+            
             SetState(BackupFormState.Idle);
 
             _findChangesTask = new FindChangesTask(this);
@@ -84,7 +84,7 @@ namespace LocalBackup.Forms
             switch (state)
             {
                 case BackupFormState.Idle:
-                    Text = "Local Backup by Aron Parker";
+                    Text = "Local Backup";
                     
                     UpdateHeader(true);
 
@@ -163,10 +163,38 @@ namespace LocalBackup.Forms
             _destinationLabel.Enabled = enabled;
             _destinationTextBox.Enabled = enabled;
             _destinationButton.Enabled = enabled;
-            _modeLabel.Enabled = enabled;
-            _modeComboBox.Enabled = enabled;
+            _quickScanToolStripMenuItem.Enabled = enabled;
         }
-        
+
+        private void OpenLink(string link)
+        {
+            try
+            {
+                using (Process.Start(link))
+                {
+                }
+            }
+            catch (Win32Exception ex)
+            {
+                MessageBox.Show("Failed to open link: " + ex.Message, "Failed to open link", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ProjectSiteToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            OpenLink("https://github.com/AronParker/LocalBackup");
+        }
+
+        private void ReportAnIssueToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            OpenLink("https://github.com/AronParker/LocalBackup/issues");
+        }
+
+        private void AboutToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("Made by Aron Parker", "About", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
         private void Browse_Click(object sender, EventArgs e)
         {
             using (var fbd = new FolderBrowserDialog())
@@ -210,7 +238,7 @@ namespace LocalBackup.Forms
                     if (!_findChangesTask.SetDestinationDirectory(_destinationTextBox.Text))
                         return;
 
-                    if (!_findChangesTask.FindComparer(_modeComboBox.SelectedIndex == 0))
+                    if (!_findChangesTask.FindComparer(_quickScanToolStripMenuItem.Checked))
                         return;
 
                     _findChangesTask.Init();
@@ -442,7 +470,7 @@ namespace LocalBackup.Forms
                 _backupForm._operationsListViewEx.VirtualListSize = _backupForm._items.Count;
                 _mirrorer.ProcessingQueue.Clear();
 
-                if (_backupForm._autoScrollCheckBox.Checked)
+                if (_backupForm._autoScrollToolStripMenuItem.Checked)
                 {
                     var lastIndex = _backupForm._items.Count - 1;
                     _backupForm._operationsListViewEx.EnsureVisible(lastIndex);
@@ -706,7 +734,7 @@ namespace LocalBackup.Forms
                 }
                 _backupForm._operationsListViewEx.EndUpdate();
 
-                if (_backupForm._autoScrollCheckBox.Checked)
+                if (_backupForm._autoScrollToolStripMenuItem.Checked)
                 {
                     var lastIndex = _queue[_queue.Count - 1].Index;
                     _backupForm._operationsListViewEx.EnsureVisible(lastIndex);
