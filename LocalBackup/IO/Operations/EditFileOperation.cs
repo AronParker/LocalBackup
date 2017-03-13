@@ -4,27 +4,23 @@ namespace LocalBackup.IO.Operations
 {
     public class EditFileOperation : FileSystemOperation
     {
-        private FileInfo srcFile;
-        private FileInfo dstFile;
-
         public EditFileOperation(FileInfo srcFile, FileInfo dstFile)
         {
-            this.srcFile = srcFile;
-            this.dstFile = dstFile;
+            SourceFile = srcFile;
+            DestinationFile = dstFile;
         }
 
-        public override string Name => "Edit file";
-        public override FileSystemOperationType Type => FileSystemOperationType.EditFile;
-        public override string FileName => dstFile.Name;
-        public override string FilePath => dstFile.FullName;
-        public override long Weight => SourceFile.Length / 4096 + 1;
-        public FileInfo SourceFile => srcFile;
-        public FileInfo DestinationFile => dstFile;
+        public override string OperationName => "Edit file";
+        public override string FileName => DestinationFile.Name;
+        public override string FilePath => DestinationFile.FullName;
+        public override long Weight => SourceFile.Length / 8192 + 1;
+        public FileInfo SourceFile { get; }
+        public FileInfo DestinationFile { get; }
 
         public override void Perform()
         {
-            FileSystem.UnsetReadOnlyIfSet(dstFile);
-            srcFile.CopyTo(dstFile.FullName, true);
+            FileSystem.UnsetReadOnlyIfSet(DestinationFile);
+            SourceFile.CopyTo(DestinationFile.FullName, true);
         }
     }
 }

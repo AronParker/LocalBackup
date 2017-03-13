@@ -14,14 +14,14 @@ namespace LocalBackup.IO
 
         protected DirectoryException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
-            Directory = (DirectoryInfo)info.GetValue("dir", typeof(FileInfo));
+            Directory = (DirectoryInfo)info.GetValue(nameof(Directory), typeof(DirectoryInfo));
         }
 
         public DirectoryInfo Directory { get; }
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            info.AddValue("dir", Directory);
+            info.AddValue(nameof(Directory), Directory);
 
             base.GetObjectData(info, context);
         }

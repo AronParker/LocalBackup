@@ -46,7 +46,7 @@
             this.operationFilePath = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.operationResult = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this._operationsImageList = new System.Windows.Forms.ImageList(this.components);
-            this.menuStrip1 = new System.Windows.Forms.MenuStrip();
+            this._menuStrip = new System.Windows.Forms.MenuStrip();
             this._optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this._quickScanToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this._autoScrollToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -56,7 +56,7 @@
             this._toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this._aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this._footerPanel.SuspendLayout();
-            this.menuStrip1.SuspendLayout();
+            this._menuStrip.SuspendLayout();
             this.SuspendLayout();
             // 
             // _footerPanel
@@ -207,24 +207,24 @@
             this._operationsImageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("_operationsImageList.ImageStream")));
             this._operationsImageList.TransparentColor = System.Drawing.Color.Transparent;
             this._operationsImageList.Images.SetKeyName(0, "folder_add.png");
-            this._operationsImageList.Images.SetKeyName(1, "folder_edit.png");
-            this._operationsImageList.Images.SetKeyName(2, "folder_delete.png");
-            this._operationsImageList.Images.SetKeyName(3, "page_add.png");
-            this._operationsImageList.Images.SetKeyName(4, "page_edit.png");
+            this._operationsImageList.Images.SetKeyName(1, "folder_delete.png");
+            this._operationsImageList.Images.SetKeyName(2, "page_add.png");
+            this._operationsImageList.Images.SetKeyName(3, "page_edit.png");
+            this._operationsImageList.Images.SetKeyName(4, "page_gear.png");
             this._operationsImageList.Images.SetKeyName(5, "page_delete.png");
             this._operationsImageList.Images.SetKeyName(6, "folder_error.png");
             this._operationsImageList.Images.SetKeyName(7, "page_error.png");
             // 
-            // menuStrip1
+            // _menuStrip
             // 
-            this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this._menuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this._optionsToolStripMenuItem,
             this._helpToolStripMenuItem});
-            this.menuStrip1.Location = new System.Drawing.Point(0, 0);
-            this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.Size = new System.Drawing.Size(784, 24);
-            this.menuStrip1.TabIndex = 0;
-            this.menuStrip1.Text = "menuStrip1";
+            this._menuStrip.Location = new System.Drawing.Point(0, 0);
+            this._menuStrip.Name = "_menuStrip";
+            this._menuStrip.Size = new System.Drawing.Size(784, 24);
+            this._menuStrip.TabIndex = 0;
+            this._menuStrip.Text = "menuStrip1";
             // 
             // _optionsToolStripMenuItem
             // 
@@ -305,14 +305,14 @@
             this.Controls.Add(this._destinationLabel);
             this.Controls.Add(this._sourceLabel);
             this.Controls.Add(this._footerPanel);
-            this.Controls.Add(this.menuStrip1);
+            this.Controls.Add(this._menuStrip);
             this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.MainMenuStrip = this.menuStrip1;
+            this.MainMenuStrip = this._menuStrip;
             this.Name = "BackupForm";
             this._footerPanel.ResumeLayout(false);
-            this.menuStrip1.ResumeLayout(false);
-            this.menuStrip1.PerformLayout();
+            this._menuStrip.ResumeLayout(false);
+            this._menuStrip.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -336,7 +336,7 @@
         private System.Windows.Forms.Button _cancelButton;
         private System.Windows.Forms.Button _okButton;
         private System.Windows.Forms.ImageList _operationsImageList;
-        private System.Windows.Forms.MenuStrip menuStrip1;
+        private System.Windows.Forms.MenuStrip _menuStrip;
         private System.Windows.Forms.ToolStripMenuItem _optionsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem _quickScanToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem _autoScrollToolStripMenuItem;

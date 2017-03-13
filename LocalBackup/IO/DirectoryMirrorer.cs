@@ -92,8 +92,8 @@ namespace LocalBackup.IO
 
                 _stack.RemoveRange(index, 2);
 
-                if (FileSystem.ClearArchiveAttribute(srcDir.Attributes) != FileSystem.ClearArchiveAttribute(dstDir.Attributes))
-                    OnOperationFound(new EditDirectoryOperation(dstDir, srcDir.Attributes));
+                if (!FileSystem.AttributesEqual(srcDir.Attributes, dstDir.Attributes))
+                    OnOperationFound(new EditAttributesOperation(dstDir, srcDir.Attributes));
 
                 GetDirectoryChanges(srcDir, dstDir, fileInfoComparer);
 
@@ -177,6 +177,8 @@ namespace LocalBackup.IO
                     {
                         if (!fileInfoComparer.Equals(srcFile, dstFile))
                             OnOperationFound(new EditFileOperation(srcFile, dstFile));
+                        else if (!FileSystem.AttributesEqual(srcFile.Attributes, dstFile.Attributes))
+                            OnOperationFound(new EditAttributesOperation(dstFile, srcFile.Attributes));
                     }
                     catch (FileException ex)
                     {
@@ -223,8 +225,8 @@ namespace LocalBackup.IO
 
                 _detector.OnOperationFound(new CreateDirectoryOperation(dstDir));
 
-                if (FileSystem.ClearArchiveAttribute(srcDir.Attributes) != FileAttributes.Directory)
-                    _detector.OnOperationFound(new EditDirectoryOperation(dstDir, srcDir.Attributes));
+                if (FileSystem.GetMeaningfulAttributes(srcDir.Attributes) != FileAttributes.Directory)
+                    _detector.OnOperationFound(new EditAttributesOperation(dstDir, srcDir.Attributes));
 
                 GetOperations();
             }
@@ -264,8 +266,8 @@ namespace LocalBackup.IO
 
                             _detector.OnOperationFound(new CreateDirectoryOperation(dstDir));
 
-                            if (FileSystem.ClearArchiveAttribute(srcDir.Attributes) != FileAttributes.Directory)
-                                _detector.OnOperationFound(new EditDirectoryOperation(dstDir, srcDir.Attributes));
+                            if (FileSystem.GetMeaningfulAttributes(srcDir.Attributes) != FileAttributes.Directory)
+                                _detector.OnOperationFound(new EditAttributesOperation(dstDir, srcDir.Attributes));
 
                             _stack.Add(srcDir);
                             _stack.Add(dstDir);

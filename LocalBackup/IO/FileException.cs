@@ -14,14 +14,14 @@ namespace LocalBackup.IO
 
         protected FileException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
-            File = (FileInfo)info.GetValue("file", typeof(FileInfo));
+            File = (FileInfo)info.GetValue(nameof(File), typeof(FileInfo));
         }
 
         public FileInfo File { get; }
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            info.AddValue("file", File);
+            info.AddValue(nameof(File), File);
 
             base.GetObjectData(info, context);
         }

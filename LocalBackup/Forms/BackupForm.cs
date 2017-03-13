@@ -20,6 +20,15 @@ namespace LocalBackup.Forms
         private const int MinRefreshInterval = 500;
         private const double DisplayTimeRemainingThreshold = .1;
 
+        private const int CreateDirectoryImageIndex = 0;
+        private const int DestroyDirectoryImageIndex = 1;
+        private const int CopyFileImageIndex = 2;
+        private const int EditFileImageIndex = 3;
+        private const int EditAttributesImageIndex = 4;
+        private const int DeleteFileImageIndex = 5;
+        private const int DirectoryExceptionImageIndex = 6;
+        private const int FileExceptionImageIndex = 7;
+
         private static Color s_red = Color.FromArgb(0xFF, 0xE0, 0xE0);
         private static Color s_yellow = Color.FromArgb(0xFF, 0xFF, 0xE0);
         private static Color s_green = Color.FromArgb(0xE0, 0xFF, 0xE0);
@@ -41,6 +50,11 @@ namespace LocalBackup.Forms
 
             _findChangesTask = new FindChangesTask(this);
             _performChangesTask = new PerformChangesTask(this);
+
+#if DEBUG
+            _sourceTextBox.Text = @"C:\Users\Aron\Desktop\1";
+            _destinationTextBox.Text = @"C:\Users\Aron\Desktop\2";
+#endif
         }
 
         private enum BackupFormState
@@ -491,11 +505,20 @@ namespace LocalBackup.Forms
 
             private static ListViewItem CreateListViewItemFromFileSystemOperation(FileSystemOperation op)
             {
-                return new ListViewItem(new string[] { op.Name, op.FileName, op.FilePath, string.Empty })
+                var lvi = new ListViewItem(new string[] { op.OperationName, op.FileName, op.FilePath, string.Empty });
+                ApplyBackColorAndImageIndex(lvi, op);
+                lvi.Tag = op;
+
+                return lvi;
+            }
+
+            private static ListViewItem CreateListViewItemFromDirectoryException(DirectoryException ex)
+            {
+                return new ListViewItem(new string[] { "Directory error", ex.Directory.Name, ex.Directory.FullName, ex.Message })
                 {
-                    BackColor = GetColorForFileSystemOperation(op),
-                    ImageIndex = (int)op.Type,
-                    Tag = op
+                    BackColor = s_red,
+                    ImageIndex = DirectoryExceptionImageIndex,
+                    Tag = ex
                 };
             }
 
@@ -504,34 +527,39 @@ namespace LocalBackup.Forms
                 return new ListViewItem(new string[] { "File error", ex.File.Name, ex.File.FullName, ex.Message })
                 {
                     BackColor = s_red,
-                    ImageIndex = 6,
+                    ImageIndex = FileExceptionImageIndex,
                     Tag = ex
                 };
             }
 
-            private static ListViewItem CreateListViewItemFromDirectoryException(DirectoryException ex)
+            private static void ApplyBackColorAndImageIndex(ListViewItem lvi, FileSystemOperation op)
             {
-                return new ListViewItem(new string[] { "Directory error", ex.Directory.Name, ex.Directory.FullName, ex.Message })
+                switch (op)
                 {
-                    BackColor = s_red,
-                    ImageIndex = 7,
-                    Tag = ex
-                };
-            }
-
-            private static Color GetColorForFileSystemOperation(FileSystemOperation op)
-            {
-                switch (op.Type)
-                {
-                    case FileSystemOperationType.CreateDirectory:
-                    case FileSystemOperationType.CopyFile:
-                        return s_green;
-                    case FileSystemOperationType.EditDirectory:
-                    case FileSystemOperationType.EditFile:
-                        return s_yellow;
-                    case FileSystemOperationType.DestroyDirectory:
-                    case FileSystemOperationType.DeleteFile:
-                        return s_red;
+                    case CreateDirectoryOperation _:
+                        lvi.BackColor = s_green;
+                        lvi.ImageIndex = CreateDirectoryImageIndex;
+                        break;
+                    case DestroyDirectoryOperation _:
+                        lvi.BackColor = s_red;
+                        lvi.ImageIndex = DestroyDirectoryImageIndex;
+                        break;
+                    case CopyFileOperation _:
+                        lvi.BackColor = s_green;
+                        lvi.ImageIndex = CopyFileImageIndex;
+                        break;
+                    case EditFileOperation _:
+                        lvi.BackColor = s_yellow;
+                        lvi.ImageIndex = EditFileImageIndex;
+                        break;
+                    case EditAttributesOperation _:
+                        lvi.BackColor = s_yellow;
+                        lvi.ImageIndex = EditAttributesImageIndex;
+                        break;
+                    case DeleteFileOperation _:
+                        lvi.BackColor = s_red;
+                        lvi.ImageIndex = DeleteFileImageIndex;
+                        break;
                     default:
                         throw new NotSupportedException();
                 }
@@ -689,14 +717,6 @@ namespace LocalBackup.Forms
                     RequestFlush();
             }
 
-            private void RequestFlush()
-            {
-                if (_backupForm.InvokeRequired)
-                    _backupForm.Invoke((MethodInvoker)Flush);
-                else
-                    Flush();
-            }
-
             private void ProcessOperation(int index, FileSystemOperation op)
             {
                 try
@@ -706,12 +726,21 @@ namespace LocalBackup.Forms
 
                     _processedWeight += op.Weight;
                 }
-                catch (Exception ex) when (ex is IOException ||
+                catch (Exception ex) when (ex is ArgumentException ||
+                                           ex is IOException ||
                                            ex is UnauthorizedAccessException ||
                                            ex is SecurityException)
                 {
                     _queue.Add(new ChangeResult(index, ex));
                 }
+            }
+
+            private void RequestFlush()
+            {
+                if (_backupForm.InvokeRequired)
+                    _backupForm.Invoke((MethodInvoker)Flush);
+                else
+                    Flush();
             }
 
             private void Flush()
@@ -784,19 +813,23 @@ namespace LocalBackup.Forms
 
                 var op = (FileSystemOperation)item.Tag;
 
-                switch (op.Type)
+                switch (op)
                 {
-                    case FileSystemOperationType.CreateDirectory:
-                    case FileSystemOperationType.EditDirectory:
-                    case FileSystemOperationType.DestroyDirectory:
-                        item.ImageIndex = 6;
+                    case CreateDirectoryOperation _:
+                    case DestroyDirectoryOperation _:
+                        item.ImageIndex = DirectoryExceptionImageIndex;
                         break;
-                    case FileSystemOperationType.CopyFile:
-                    case FileSystemOperationType.EditFile:
-                    case FileSystemOperationType.DeleteFile:
-                        item.ImageIndex = 7;
+                    case CopyFileOperation _:
+                    case EditFileOperation _:
+                    case DeleteFileOperation _:
+                        item.ImageIndex = FileExceptionImageIndex;
                         break;
-                    default:
+                    case EditAttributesOperation editOp:
+                        if (editOp.FileSystemInfo is DirectoryInfo _)
+                            item.ImageIndex = DirectoryExceptionImageIndex;
+                        else if (editOp.FileSystemInfo is FileInfo _)
+                            item.ImageIndex = FileExceptionImageIndex;
+
                         break;
                 }
             }
@@ -818,5 +851,82 @@ namespace LocalBackup.Forms
                 }
             }
         }
+
+        private abstract class SpecialListViewItem : ListViewItem
+        {
+            public SpecialListViewItem(string[] items) : base(items)
+            {
+            }
+
+            public abstract void MarkAsPending();
+        }
+
+        private class OperationListViewItem : SpecialListViewItem
+        {
+            public OperationListViewItem(string[] items, FileSystemOperation op) : base(items)
+            {
+                Operation = op;
+            }
+
+            public FileSystemOperation Operation { get; }
+            public bool Succeeded { get; private set; }
+            
+            public override void MarkAsPending()
+            {
+                BackColor = Color.FromKnownColor(KnownColor.Window);
+                SubItems[3].Text = "Pending to perform...";
+            }
+
+            private void MarkItemSuccess()
+            {
+                BackColor = s_green;
+                SubItems[3].Text = "Operation completed successfully.";
+                Succeeded = true;
+            }
+
+            private void MarkItemFailure(Exception ex)
+            {
+                BackColor = s_red;
+                SubItems[3].Text = ex.Message;
+
+                switch (Operation)
+                {
+                    case CreateDirectoryOperation _:
+                    case DestroyDirectoryOperation _:
+                        ImageIndex = DirectoryExceptionImageIndex;
+                        break;
+                    case CopyFileOperation _:
+                    case EditFileOperation _:
+                    case DeleteFileOperation _:
+                        ImageIndex = FileExceptionImageIndex;
+                        break;
+                    case EditAttributesOperation editOp:
+                        if (editOp.FileSystemInfo is DirectoryInfo _)
+                            ImageIndex = DirectoryExceptionImageIndex;
+                        else if (editOp.FileSystemInfo is FileInfo _)
+                            ImageIndex = FileExceptionImageIndex;
+
+                        break;
+                }
+
+                Succeeded = false;
+            }
+        }
+
+        private class ExceptionListViewItem : SpecialListViewItem
+        {
+            public ExceptionListViewItem(string[] items, Exception ex) : base(items)
+            {
+                Exception = ex;
+            }
+
+            public Exception Exception { get; }
+
+            public override void MarkAsPending()
+            {
+                BackColor = s_yellow;
+            }
+        }
+
     }
 }

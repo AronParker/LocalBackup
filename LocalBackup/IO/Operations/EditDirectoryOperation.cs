@@ -2,26 +2,23 @@
 
 namespace LocalBackup.IO.Operations
 {
-    public class EditDirectoryOperation : FileSystemOperation
+    public class EditAttributesOperation : FileSystemOperation
     {
-        private DirectoryInfo _dir;
-        private FileAttributes _attributes;
-
-        public EditDirectoryOperation(DirectoryInfo dir, FileAttributes attributes)
+        public EditAttributesOperation(FileSystemInfo fsi, FileAttributes attributes)
         {
-            _dir = dir;
-            _attributes = attributes;
+            FileSystemInfo = fsi;
+            Attributes = attributes;
         }
 
-        public override string Name => "Edit directory";
-        public override FileSystemOperationType Type => FileSystemOperationType.EditDirectory;
-        public override string FileName => _dir.Name;
-        public override string FilePath => _dir.FullName;
-        public DirectoryInfo Directory => _dir;
+        public override string OperationName => "Edit attributes";
+        public override string FileName => FileSystemInfo.Name;
+        public override string FilePath => FileSystemInfo.FullName;
+        public FileSystemInfo FileSystemInfo { get; }
+        public FileAttributes Attributes { get; }
 
         public override void Perform()
         {
-            _dir.Attributes = _attributes;
+            FileSystemInfo.Attributes = Attributes;
         }
     }
 }

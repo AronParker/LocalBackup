@@ -82,7 +82,6 @@
     <Compile Include="IO\DirectoryMirrorer.cs" />
     <Compile Include="IO\Operations\FileSystemOperationEventArgs.cs" />
     <Compile Include="IO\Operations\FileSystemOperationHandler.cs" />
-    <Compile Include="IO\Operations\FileSystemOperationType.cs" />
     <Compile Include="IO\Operations\FileSystemOperation.cs" />
     <Compile Include="IO\Operations\CopyFileOperation.cs" />
     <Compile Include="IO\Operations\CreateDirectoryOperation.cs" />

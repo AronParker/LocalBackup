@@ -5,13 +5,10 @@ using System.Security;
 
 namespace LocalBackup.IO
 {
-    public static class FileSystem
+    internal static class FileSystem
     {
         public static FileStream OpenFile(FileInfo file)
         {
-            if (file == null)
-                throw new ArgumentNullException(nameof(file));
-
             try
             {
                 return new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1, FileOptions.SequentialScan);
@@ -26,17 +23,6 @@ namespace LocalBackup.IO
 
         public static void ReadFile(FileInfo file, FileStream fs, byte[] buffer, int offset, int count)
         {
-            if (file == null)
-                throw new ArgumentNullException(nameof(file));
-            if (fs == null)
-                throw new ArgumentNullException(nameof(fs));
-            if (buffer == null)
-                throw new ArgumentNullException(nameof(buffer));
-            if ((uint)offset > (uint)buffer.Length)
-                throw new ArgumentOutOfRangeException(nameof(offset));
-            if ((uint)count > (uint)buffer.Length - (uint)offset)
-                throw new ArgumentOutOfRangeException(nameof(count));
-
             try
             {
                 fs.SafeRead(buffer, offset, count);
@@ -49,16 +35,18 @@ namespace LocalBackup.IO
             }
         }
 
-        public static FileAttributes ClearArchiveAttribute(FileAttributes attributes)
+        public static FileAttributes GetMeaningfulAttributes(FileAttributes attributes)
         {
-            return attributes & ~(FileAttributes.Archive);
+            return attributes & ~(FileAttributes.Archive | FileAttributes.ReparsePoint);
+        }
+
+        public static bool AttributesEqual(FileAttributes attributes1, FileAttributes attributes2)
+        {
+            return ((attributes1 ^ attributes2) & ~(FileAttributes.Archive | FileAttributes.ReparsePoint)) == 0;
         }
 
         public static void UnsetReadOnlyIfSet(FileSystemInfo fsi)
         {
-            if (fsi == null)
-                throw new ArgumentNullException(nameof(fsi));
-
             var attributes = fsi.Attributes;
 
             if (attributes != (FileAttributes)(-1) && (attributes & FileAttributes.ReadOnly) != 0)
