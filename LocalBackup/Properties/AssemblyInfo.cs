@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("LocalBackup")]
+[assembly: AssemblyTitle("Local Backup")]
 [assembly: AssemblyDescription("A tool designed to create backups locally.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Aron Parker")]
-[assembly: AssemblyProduct("LocalBackup")]
+[assembly: AssemblyProduct("Local Backup")]
 [assembly: AssemblyCopyright("© 2017 by Aron Parker, All Rights Reserved.")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

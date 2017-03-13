@@ -84,7 +84,7 @@ namespace LocalBackup.Forms
             switch (state)
             {
                 case BackupFormState.Idle:
-                    Text = "Local Backup";
+                    Text = "Local Backup by Aron Parker";
                     
                     UpdateHeader(true);
 
