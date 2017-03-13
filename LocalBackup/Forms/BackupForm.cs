@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,12 +12,12 @@ using LocalBackup.Extensions;
 using LocalBackup.IO;
 using LocalBackup.IO.FileComparers;
 using LocalBackup.IO.Operations;
-
 namespace LocalBackup.Forms
 {
     public partial class BackupForm : Form
     {
         private const int MinRefreshInterval = 500;
+        private const double DisplayTimeRemainingThreshold = .1;
 
         private static Color s_red = Color.FromArgb(0xFF, 0xE0, 0xE0);
         private static Color s_yellow = Color.FromArgb(0xFF, 0xFF, 0xE0);
@@ -319,11 +320,6 @@ namespace LocalBackup.Forms
                 }
             }
 
-            public void Init()
-            {
-                _mirrorer.Init();
-            }
-
             public bool FindComparer(bool quickScan)
             {
                 if (!quickScan)
@@ -357,6 +353,11 @@ namespace LocalBackup.Forms
                 return true;
             }
 
+            public void Init()
+            {
+                _mirrorer.Init();
+            }
+
             public async Task Run(CancellationToken ct)
             {
                 try
@@ -368,7 +369,16 @@ namespace LocalBackup.Forms
                     if (_mirrorer.ProcessingQueue.Count > 0)
                         Flush();
 
-                    _backupForm.SetState(BackupFormState.ReviewChanges);
+                    if (_backupForm._items.Count == 0)
+                    {
+                        _backupForm.SetState(BackupFormState.Idle);
+                        MessageBox.Show("Source and destination directory are identical.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        _backupForm.SetState(BackupFormState.ReviewChanges);
+                        DisplayErrors();
+                    }
                 }
                 catch (OperationCanceledException)
                 {
@@ -376,7 +386,17 @@ namespace LocalBackup.Forms
                     _backupForm.SetState(BackupFormState.Done);
                 }
             }
-            
+
+            private void DisplayErrors()
+            {
+                var errors = _backupForm._items.Count(x => x.Tag is FileException || x.Tag is DirectoryException);
+
+                if (errors == 0)
+                    return;
+
+                MessageBox.Show($"{errors} error(s) occured while finding changes.", $"{errors} error(s) occured", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
             private string GetDestinationFileSystem()
             {
                 try
@@ -414,68 +434,81 @@ namespace LocalBackup.Forms
 
                 foreach (var item in _mirrorer.ProcessingQueue)
                 {
-                    ListViewItem lvi;
-
-                    switch (item)
-                    {
-                        case FileSystemOperation op:
-                            Color backColor;
-
-                            switch (op.Type)
-                            {
-                                case FileSystemOperationType.CreateDirectory:
-                                case FileSystemOperationType.CopyFile:
-                                    backColor = s_green;
-                                    break;
-                                case FileSystemOperationType.EditDirectory:
-                                case FileSystemOperationType.EditFile:
-                                    backColor = s_yellow;
-                                    break;
-                                case FileSystemOperationType.DestroyDirectory:
-                                case FileSystemOperationType.DeleteFile:
-                                    backColor = s_red;
-                                    break;
-                                default:
-                                    throw new NotSupportedException();
-                            }
-
-                            lvi = new ListViewItem(new string[] { op.Name, op.FileName, op.FilePath, string.Empty })
-                            {
-                                BackColor = backColor,
-                                ImageIndex = (int)op.Type,
-                                Tag = op
-                            };
-                            break;
-                        case FileException ex:
-                            lvi = new ListViewItem(new string[] { "File error", ex.File.Name, ex.File.FullName, ex.Message })
-                            {
-                                BackColor = s_red,
-                                ImageIndex = 6,
-                                Tag = ex
-                            };
-                            break;
-                        case DirectoryException ex:
-                            lvi = new ListViewItem(new string[] { "Directory error", ex.Directory.Name, ex.Directory.FullName, ex.Message })
-                            {
-                                BackColor = s_red,
-                                ImageIndex = 7,
-                                Tag = ex
-                            };
-                            break;
-                        default:
-                            throw new NotSupportedException();
-                    }
-
+                    var lvi = CreateListViewItem(item);
+                    
                     _backupForm._items.Add(lvi);
                 }
 
-                _mirrorer.ProcessingQueue.Clear();
                 _backupForm._operationsListViewEx.VirtualListSize = _backupForm._items.Count;
+                _mirrorer.ProcessingQueue.Clear();
 
                 if (_backupForm._autoScrollCheckBox.Checked)
                 {
                     var lastIndex = _backupForm._items.Count - 1;
                     _backupForm._operationsListViewEx.EnsureVisible(lastIndex);
+                }
+            }
+
+            private ListViewItem CreateListViewItem(object item)
+            {
+                switch (item)
+                {
+                    case FileSystemOperation op:
+                        return CreateListViewItemFromFileSystemOperation(op);
+                    case FileException ex:
+                        return CreateListViewItemFromFileException(ex);
+                    case DirectoryException ex:
+                        return CreateListViewItemFromDirectoryException(ex);
+                    default:
+                        throw new NotSupportedException();
+                }
+            }
+
+            private static ListViewItem CreateListViewItemFromFileSystemOperation(FileSystemOperation op)
+            {
+                return new ListViewItem(new string[] { op.Name, op.FileName, op.FilePath, string.Empty })
+                {
+                    BackColor = GetColorForFileSystemOperation(op),
+                    ImageIndex = (int)op.Type,
+                    Tag = op
+                };
+            }
+
+            private static ListViewItem CreateListViewItemFromFileException(FileException ex)
+            {
+                return new ListViewItem(new string[] { "File error", ex.File.Name, ex.File.FullName, ex.Message })
+                {
+                    BackColor = s_red,
+                    ImageIndex = 6,
+                    Tag = ex
+                };
+            }
+
+            private static ListViewItem CreateListViewItemFromDirectoryException(DirectoryException ex)
+            {
+                return new ListViewItem(new string[] { "Directory error", ex.Directory.Name, ex.Directory.FullName, ex.Message })
+                {
+                    BackColor = s_red,
+                    ImageIndex = 7,
+                    Tag = ex
+                };
+            }
+
+            private static Color GetColorForFileSystemOperation(FileSystemOperation op)
+            {
+                switch (op.Type)
+                {
+                    case FileSystemOperationType.CreateDirectory:
+                    case FileSystemOperationType.CopyFile:
+                        return s_green;
+                    case FileSystemOperationType.EditDirectory:
+                    case FileSystemOperationType.EditFile:
+                        return s_yellow;
+                    case FileSystemOperationType.DestroyDirectory:
+                    case FileSystemOperationType.DeleteFile:
+                        return s_red;
+                    default:
+                        throw new NotSupportedException();
                 }
             }
 
@@ -573,17 +606,29 @@ namespace LocalBackup.Forms
 
                     await Task.Run(() => PerformChanges(ct));
 
-                    var changes = _backupForm._items.Count;
+                    var changes = _backupForm._items.Count(x => x.Tag is FileSystemInfo);
                     var elapsed = DateTimeOffset.UtcNow - _start;
 
-                    _backupForm.Text = FormattableString.Invariant($"Backup Utility - {changes} changes performed in {elapsed.ToHumanReadableString()}");
+                    _backupForm.Text = FormattableString.Invariant($"Backup Utility - {changes} change(s) performed in {elapsed.ToHumanReadableString()}");
                     _backupForm.SetState(BackupFormState.Done);
+
+                    DisplayErrors();
                 }
                 catch (OperationCanceledException)
                 {
                     _backupForm.Text = "Backup Utility - Canceled";
                     _backupForm.SetState(BackupFormState.Done);
                 }
+            }
+
+            private void DisplayErrors()
+            {
+                var errors = _backupForm._items.Count(x => x.BackColor == s_red);
+
+                if (errors == 0)
+                    return;
+
+                MessageBox.Show($"{errors} error(s) occured while performing changes.", $"{errors} error(s) occured", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
 
             private void PerformChanges(CancellationToken ct)
@@ -643,6 +688,12 @@ namespace LocalBackup.Forms
             {
                 Debug.Assert(_queue.Count > 0);
 
+                UpdateItems();
+                UpdateProgress();
+            }
+
+            private void UpdateItems()
+            {
                 _backupForm._operationsListViewEx.BeginUpdate();
                 foreach (var result in _queue)
                 {
@@ -662,10 +713,13 @@ namespace LocalBackup.Forms
                 }
 
                 _queue.Clear();
+            }
 
+            private void UpdateProgress()
+            {
                 var percentage = (double)_processedWeight / _totalWeight;
 
-                if (percentage >= .1)
+                if (percentage >= DisplayTimeRemainingThreshold)
                 {
                     var elapsed = (DateTimeOffset.UtcNow - _start).Ticks;
                     var total = (long)(elapsed / percentage);
