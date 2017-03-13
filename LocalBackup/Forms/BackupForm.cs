@@ -606,7 +606,7 @@ namespace LocalBackup.Forms
 
                     await Task.Run(() => PerformChanges(ct));
 
-                    var changes = _backupForm._items.Count(x => x.Tag is FileSystemInfo);
+                    var changes = _backupForm._items.Count(x => x.Tag is FileSystemOperation);
                     var elapsed = DateTimeOffset.UtcNow - _start;
 
                     _backupForm.Text = FormattableString.Invariant($"Backup Utility - {changes} change(s) performed in {elapsed.ToHumanReadableString()}");
