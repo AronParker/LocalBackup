@@ -496,7 +496,7 @@ namespace LocalBackup.Forms
 
             private class QueuedDirectoryMirrorer : DirectoryMirrorer
             {
-                private DateTimeOffset _lastUpdate;
+                private DateTime _lastUpdate;
 
                 public event EventHandler FlushRequested;
 
@@ -504,7 +504,7 @@ namespace LocalBackup.Forms
 
                 public void Init()
                 {
-                    _lastUpdate = DateTimeOffset.MinValue;
+                    _lastUpdate = DateTime.MinValue;
                 }
 
                 protected override void OnOperationFound(FileSystemOperation operation)
@@ -521,7 +521,7 @@ namespace LocalBackup.Forms
                 {
                     ProcessingQueue.Enqueue(item);
 
-                    var now = DateTimeOffset.UtcNow;
+                    var now = DateTime.UtcNow;
 
                     if ((now - _lastUpdate).TotalMilliseconds >= MinRefreshInterval)
                     {
@@ -537,11 +537,11 @@ namespace LocalBackup.Forms
         {
             private BackupForm _backupForm;
             private List<ChangeResult> _queue = new List<ChangeResult>();
-            private DateTimeOffset _lastUpdate;
+            private DateTime _lastUpdate;
             private long _processedWeight;
             private long _totalWeight;
 
-            private DateTimeOffset _start;
+            private DateTime _start;
 
             public PerformChangesTask(BackupForm backupForm)
             {
@@ -551,7 +551,7 @@ namespace LocalBackup.Forms
             public void Init()
             {
                 _queue.Clear();
-                _lastUpdate = DateTimeOffset.MinValue;
+                _lastUpdate = DateTime.MinValue;
 
                 _processedWeight = 0;
                 _totalWeight = 0;
@@ -607,7 +607,7 @@ namespace LocalBackup.Forms
 
             private void PerformChanges(CancellationToken ct)
             {
-                _start = DateTimeOffset.UtcNow;
+                _start = DateTime.UtcNow;
 
                 for (var i = 0; i < _backupForm._items.Count; i++)
                 {
@@ -619,7 +619,7 @@ namespace LocalBackup.Forms
                     if (_queue.Count == 0)
                         continue;
 
-                    var now = DateTimeOffset.UtcNow;
+                    var now = DateTime.UtcNow;
 
                     if ((now - _lastUpdate).TotalMilliseconds >= MinRefreshInterval)
                     {
