@@ -1,7 +1,7 @@
-﻿using LocalBackup.Extensions;
-using System;
+﻿using System;
 using System.IO;
 using System.Security;
+using LocalBackup.Extensions;
 
 namespace LocalBackup.IO
 {
@@ -34,10 +34,10 @@ namespace LocalBackup.IO
                 throw new FileException(file, ex);
             }
         }
-
-        public static FileAttributes GetMeaningfulAttributes(FileAttributes attributes)
+        
+        public static bool ContainsSpecialDirectoryAttributes(FileAttributes attributes)
         {
-            return attributes & ~(FileAttributes.Archive | FileAttributes.ReparsePoint);
+            return (attributes & ~(FileAttributes.Directory | FileAttributes.Archive | FileAttributes.ReparsePoint)) != 0;
         }
 
         public static bool AttributesEqual(FileAttributes attributes1, FileAttributes attributes2)
@@ -49,7 +49,7 @@ namespace LocalBackup.IO
         {
             var attributes = fsi.Attributes;
 
-            if (attributes != (FileAttributes)(-1) && (attributes & FileAttributes.ReadOnly) != 0)
+            if ((attributes & FileAttributes.ReadOnly) != 0)
                 fsi.Attributes = attributes & ~FileAttributes.ReadOnly;
         }
     }

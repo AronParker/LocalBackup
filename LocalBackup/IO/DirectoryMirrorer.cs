@@ -225,7 +225,7 @@ namespace LocalBackup.IO
 
                 _detector.OnOperationFound(new CreateDirectoryOperation(dstDir));
 
-                if (FileSystem.GetMeaningfulAttributes(srcDir.Attributes) != FileAttributes.Directory)
+                if (FileSystem.ContainsSpecialDirectoryAttributes(srcDir.Attributes))
                     _detector.OnOperationFound(new EditAttributesOperation(dstDir, srcDir.Attributes));
 
                 GetOperations();
@@ -266,7 +266,7 @@ namespace LocalBackup.IO
 
                             _detector.OnOperationFound(new CreateDirectoryOperation(dstDir));
 
-                            if (FileSystem.GetMeaningfulAttributes(srcDir.Attributes) != FileAttributes.Directory)
+                            if (FileSystem.ContainsSpecialDirectoryAttributes(srcDir.Attributes))
                                 _detector.OnOperationFound(new EditAttributesOperation(dstDir, srcDir.Attributes));
 
                             _stack.Add(srcDir);
