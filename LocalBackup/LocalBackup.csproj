@@ -59,7 +59,6 @@
     <Compile Include="Extensions\IListEx.cs" />
     <Compile Include="Extensions\StreamEx.cs" />
     <Compile Include="Extensions\TimeSpanEx.cs" />
-    <Compile Include="IO\DuplicateFinderState.cs" />
     <Compile Include="Forms\BackupForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -67,17 +66,12 @@
       <DependentUpon>BackupForm.cs</DependentUpon>
     </Compile>
     <Compile Include="IO\DirectoryException.cs" />
-    <Compile Include="IO\DuplicateFinder.cs" />
     <Compile Include="IO\FileEqualityComparers\FATFileEqualityComparer.cs" />
     <Compile Include="IO\FileEqualityComparers\DefaultFileEqualityComparer.cs" />
     <Compile Include="IO\FileEqualityComparers\IFileInfoEqualityComparer.cs" />
     <Compile Include="IO\FileEqualityComparers\IFileEqualityComprarer.cs" />
-    <Compile Include="IO\FileInfoEventArgs.cs" />
-    <Compile Include="IO\FileInfoEventHandler.cs" />
     <Compile Include="IO\FileException.cs" />
     <Compile Include="IO\FileEqualityComparers\DefaultFileInfoEqualityComparer.cs" />
-    <Compile Include="IO\FileInfoEnumerableEventArgs.cs" />
-    <Compile Include="IO\FileInfoEnumerableEventHandler.cs" />
     <Compile Include="IO\FileSystem.cs" />
     <Compile Include="IO\DirectoryMirrorer.cs" />
     <Compile Include="IO\Operations\FileSystemOperationEventArgs.cs" />
