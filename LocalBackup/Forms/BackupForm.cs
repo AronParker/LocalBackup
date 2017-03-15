@@ -5,10 +5,12 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using LocalBackup.Controls;
 using LocalBackup.Extensions;
 using LocalBackup.IO;
 using LocalBackup.IO.FileEqualityComparers;
@@ -33,9 +35,10 @@ namespace LocalBackup.Forms
         private static Color s_yellow = Color.FromArgb(0xFF, 0xFF, 0xE0);
         private static Color s_green = Color.FromArgb(0xE0, 0xFF, 0xE0);
 
-        private List<Item> _items = new List<Item>();
+        private List<OperationItem> _operations = new List<OperationItem>();
+        private List<ListViewItem> _errors = new List<ListViewItem>();
         private BackupFormState _state;
-
+        
         private FindChangesTask _findChangesTask;
         private PerformChangesTask _performChangesTask;
 
@@ -47,7 +50,7 @@ namespace LocalBackup.Forms
             InitializeComponent();
             
             SetState(BackupFormState.Idle);
-
+            
             _findChangesTask = new FindChangesTask(this);
             _performChangesTask = new PerformChangesTask(this);
 
@@ -103,7 +106,9 @@ namespace LocalBackup.Forms
                     UpdateHeader(true);
 
                     _operationsListViewEx.VirtualListSize = 0;
-                    _items.Clear();
+                    _operations.Clear();
+                    _errorsListViewEx.VirtualListSize = 0;
+                    _errors.Clear();
 
                     _progressBar.Style = ProgressBarStyle.Continuous;
                     _progressBar.Value = 0;
@@ -238,7 +243,12 @@ namespace LocalBackup.Forms
 
         private void OperationsListView_RetrieveVirtualItem(object sender, RetrieveVirtualItemEventArgs e)
         {
-            e.Item = _items[e.ItemIndex];
+            e.Item = _operations[e.ItemIndex];
+        }
+
+        private void ErrorsListViewEx_RetrieveVirtualItem(object sender, RetrieveVirtualItemEventArgs e)
+        {
+            e.Item = _errors[e.ItemIndex];
         }
 
         private async void OkButton_Click(object sender, EventArgs e)
@@ -405,7 +415,7 @@ namespace LocalBackup.Forms
                     if (_mirrorer.ProcessingQueue.Count > 0)
                         Flush();
 
-                    if (_backupForm._items.Count == 0)
+                    if (_backupForm._operations.Count == 0 && _backupForm._errors.Count == 0)
                     {
                         _backupForm.SetState(BackupFormState.Idle);
                         DisplayDirectoriesEqual();
@@ -433,7 +443,7 @@ namespace LocalBackup.Forms
 
             private void DisplayErrors()
             {
-                var errors = _backupForm._items.Count(x => x.IsFindingChangesError);
+                var errors = _backupForm._errors.Count;
 
                 if (errors == 0)
                     return;
@@ -471,18 +481,63 @@ namespace LocalBackup.Forms
 
             private void Flush()
             {
-                Debug.Assert(_mirrorer.ProcessingQueue.Count > 0);
+                var prevOperationCount = _backupForm._operations.Count;
+                var prevErrorCount = _backupForm._errors.Count;
 
-                foreach (var item in _mirrorer.ProcessingQueue)
-                    _backupForm._items.Add(Item.Create(item));
+                ProcessQueue();
 
-                _backupForm._operationsListViewEx.VirtualListSize = _backupForm._items.Count;
-                _mirrorer.ProcessingQueue.Clear();
+                var operationsAdded = _backupForm._operations.Count > prevOperationCount;
+                var errorsAdded = _backupForm._errors.Count > prevErrorCount;
 
+                if (operationsAdded)
+                    _backupForm._operationsListViewEx.VirtualListSize = _backupForm._operations.Count;
+
+                if (errorsAdded)
+                    _backupForm._errorsListViewEx.VirtualListSize = _backupForm._errors.Count;
+                
                 if (_backupForm._autoScrollToolStripMenuItem.Checked)
+                    AutoScroll(operationsAdded, errorsAdded);
+            }
+
+            private void ProcessQueue()
+            {
+                foreach (var item in _mirrorer.ProcessingQueue)
                 {
-                    var lastIndex = _backupForm._items.Count - 1;
-                    _backupForm._operationsListViewEx.EnsureVisible(lastIndex);
+                    switch (item)
+                    {
+                        case FileSystemOperation op:
+                            _backupForm._operations.Add(new OperationItem(op));
+                            break;
+                        case DirectoryException ex:
+                            _backupForm._errors.Add(new ListViewItem(new string[] { "Directory error", ex.Directory.Name, ex.Directory.FullName, ex.Message }, DirectoryExceptionImageIndex)
+                            {
+                                Tag = ex
+                            });
+                            break;
+                        case FileException ex:
+                            _backupForm._errors.Add(new ListViewItem(new string[] { "File error", ex.File.Name, ex.File.FullName, ex.Message }, FileExceptionImageIndex)
+                            {
+                                Tag = ex
+                            });
+                            break;
+                    }
+                }
+
+                _mirrorer.ProcessingQueue.Clear();
+            }
+
+            private void AutoScroll(bool operationsAdded, bool errorsAdded)
+            {
+                if (operationsAdded)
+                {
+                    var lastOperation = _backupForm._operations.Count - 1;
+                    _backupForm._operationsListViewEx.EnsureVisible(lastOperation);
+                }
+
+                if (errorsAdded)
+                {
+                    var lastError = _backupForm._errors.Count - 1;
+                    _backupForm._errorsListViewEx.EnsureVisible(lastError);
                 }
             }
 
@@ -557,12 +612,10 @@ namespace LocalBackup.Forms
                 _totalWeight = 0;
                 
                 _backupForm._operationsListViewEx.BeginUpdate();
-                foreach (var item in _backupForm._items)
+                foreach (var item in _backupForm._operations)
                 {
+                    _totalWeight += item.Operation.Weight;
                     item.MarkAsPending();
-                    
-                    if (item.Tag is FileSystemOperation op)
-                        _totalWeight += op.Weight;
                 }
                 _backupForm._operationsListViewEx.EndUpdate();
             }
@@ -588,7 +641,7 @@ namespace LocalBackup.Forms
 
             private void DisplayChangesAndElapsed()
             {
-                var changes = _backupForm._items.Count(x => x.Tag is FileSystemOperation);
+                var changes = _backupForm._operations.Count;
                 var elapsed = DateTimeOffset.UtcNow - _start;
 
                 _backupForm.Text = FormattableString.Invariant($"Backup Utility - {changes} change(s) performed in {elapsed.ToHumanReadableString()}");
@@ -597,7 +650,7 @@ namespace LocalBackup.Forms
 
             private void DisplayErrors()
             {
-                var errors = _backupForm._items.Count(x => x.IsPerformingChangesError);
+                var errors = _backupForm._operations.Count(x => !x.Success);
 
                 if (errors == 0)
                     return;
@@ -609,15 +662,11 @@ namespace LocalBackup.Forms
             {
                 _start = DateTime.UtcNow;
 
-                for (var i = 0; i < _backupForm._items.Count; i++)
+                for (var i = 0; i < _backupForm._operations.Count; i++)
                 {
                     ct.ThrowIfCancellationRequested();
 
-                    if (_backupForm._items[i].Tag is FileSystemOperation op)
-                        ProcessOperation(i, op);
-
-                    if (_queue.Count == 0)
-                        continue;
+                    ProcessOperation(i, _backupForm._operations[i].Operation);
 
                     var now = DateTime.UtcNow;
 
@@ -639,8 +688,6 @@ namespace LocalBackup.Forms
                 {
                     op.Perform();
                     _queue.Add(new ChangeResult(index, null));
-
-                    _processedWeight += op.Weight;
                 }
                 catch (Exception ex) when (ex is ArgumentException ||
                                            ex is IOException ||
@@ -649,6 +696,8 @@ namespace LocalBackup.Forms
                 {
                     _queue.Add(new ChangeResult(index, ex));
                 }
+
+                _processedWeight += op.Weight;
             }
 
             private void RequestFlush()
@@ -672,12 +721,12 @@ namespace LocalBackup.Forms
                 _backupForm._operationsListViewEx.BeginUpdate();
                 foreach (var result in _queue)
                 {
-                    var item = _backupForm._items[result.Index];
+                    var item = _backupForm._operations[result.Index];
 
                     if (result.Exception == null)
-                        item.MarkSuccess();
+                        item.MarkAsSuccessful();
                     else
-                        item.MarkFailure(result.Exception);
+                        item.MarkAsFailure(result.Exception);
                 }
                 _backupForm._operationsListViewEx.EndUpdate();
 
@@ -723,122 +772,68 @@ namespace LocalBackup.Forms
             }
         }
 
-        private class Item : ListViewItem
+        private class OperationItem : ListViewItem
         {
-            public Item(string[] items) : base(items)
+            public OperationItem(FileSystemOperation op) : base(new string[] { string.Empty, op.FileName, op.FilePath, string.Empty })
             {
-            }
-
-            public bool IsFindingChangesError => !(Tag is FileSystemOperation);
-            public bool IsPerformingChangesError { get; private set; } = false;
-
-            public static Item Create(object item)
-            {
-                Item lvi;
-
-                switch (item)
-                {
-                    case FileSystemOperation op:
-                        lvi = Create(op);
-                        break;
-                    case FileException ex:
-                        lvi = Create(ex);
-                        break;
-                    case DirectoryException ex:
-                        lvi = Create(ex);
-                        break;
-                    default:
-                        throw new NotSupportedException();
-                }
-
-                lvi.Tag = item;
-
-                return lvi;
-            }
-
-            public static Item Create(FileSystemOperation op)
-            {
-                var lvi = new Item(new string[] { string.Empty, op.FileName, op.FilePath, string.Empty });
-
                 switch (op)
                 {
                     case CreateDirectoryOperation _:
-                        lvi.Text = "Create directory";
-                        lvi.BackColor = s_green;
-                        lvi.ImageIndex = CreateDirectoryImageIndex;
+                        Text = "Create directory";
+                        BackColor = s_green;
+                        ImageIndex = CreateDirectoryImageIndex;
                         break;
                     case DestroyDirectoryOperation _:
-                        lvi.Text = "Destroy directory";
-                        lvi.BackColor = s_red;
-                        lvi.ImageIndex = DestroyDirectoryImageIndex;
+                        Text = "Destroy directory";
+                        BackColor = s_red;
+                        ImageIndex = DestroyDirectoryImageIndex;
                         break;
                     case CopyFileOperation _:
-                        lvi.Text = "Copy file";
-                        lvi.BackColor = s_green;
-                        lvi.ImageIndex = CopyFileImageIndex;
+                        Text = "Copy file";
+                        BackColor = s_green;
+                        ImageIndex = CopyFileImageIndex;
                         break;
                     case EditFileOperation _:
-                        lvi.Text = "Edit file";
-                        lvi.BackColor = s_yellow;
-                        lvi.ImageIndex = EditFileImageIndex;
+                        Text = "Edit file";
+                        BackColor = s_yellow;
+                        ImageIndex = EditFileImageIndex;
                         break;
                     case EditAttributesOperation _:
-                        lvi.Text = "Edit attributes";
-                        lvi.BackColor = s_yellow;
-                        lvi.ImageIndex = EditAttributesImageIndex;
+                        Text = "Edit attributes";
+                        BackColor = s_yellow;
+                        ImageIndex = EditAttributesImageIndex;
                         break;
                     case DeleteFileOperation _:
-                        lvi.Text = "Delete file";
-                        lvi.BackColor = s_red;
-                        lvi.ImageIndex = DeleteFileImageIndex;
+                        Text = "Delete file";
+                        BackColor = s_red;
+                        ImageIndex = DeleteFileImageIndex;
                         break;
                     default:
                         throw new NotSupportedException();
                 }
-
-                return lvi;
+                
+                Operation = op;
             }
 
-            public static Item Create(DirectoryException ex)
-            {
-                return new Item(new string[] { "Directory error", ex.Directory.Name, ex.Directory.FullName, ex.Message })
-                {
-                    BackColor = s_red,
-                    ImageIndex = DirectoryExceptionImageIndex,
-                };
-            }
+            static Random k = new Random();
 
-            public static Item Create(FileException ex)
-            {
-                return new Item(new string[] { "File error", ex.File.Name, ex.File.FullName, ex.Message })
-                {
-                    BackColor = s_red,
-                    ImageIndex = FileExceptionImageIndex,
-                };
-            }
+            public FileSystemOperation Operation { get; }
+            public bool Success { get; private set; }
 
             public void MarkAsPending()
             {
-                if (Tag is FileSystemOperation)
-                {
-                    BackColor = Color.FromKnownColor(KnownColor.Window);
-                    SubItems[3].Text = "Pending to perform...";
-                }
-                else
-                {
-                    BackColor = s_yellow;
-                }
+                BackColor = Color.FromKnownColor(KnownColor.Window);
+                SubItems[3].Text = "Pending to perform...";
             }
-
-
-            public void MarkSuccess()
+            
+            public void MarkAsSuccessful()
             {
                 BackColor = s_green;
                 SubItems[3].Text = "Operation completed successfully.";
-                IsPerformingChangesError = false;
+                Success = true;
             }
 
-            public void MarkFailure(Exception ex)
+            public void MarkAsFailure(Exception ex)
             {
                 BackColor = s_red;
                 SubItems[3].Text = ex.Message;
@@ -863,7 +858,7 @@ namespace LocalBackup.Forms
                         break;
                 }
 
-                IsPerformingChangesError = true;
+                Success = false;
             }
         }
     }

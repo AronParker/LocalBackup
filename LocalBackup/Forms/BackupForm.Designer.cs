@@ -55,6 +55,11 @@
             this._reportAnIssueToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this._toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this._aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this._errorsListViewEx = new LocalBackup.Controls.ListViewEx();
+            this._errorType = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this._errorFileName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this._errorFilePath = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this._errorResult = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this._footerPanel.SuspendLayout();
             this._menuStrip.SuspendLayout();
             this.SuspendLayout();
@@ -174,7 +179,7 @@
             this._operationsListViewEx.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
             this._operationsListViewEx.Location = new System.Drawing.Point(12, 86);
             this._operationsListViewEx.Name = "_operationsListViewEx";
-            this._operationsListViewEx.Size = new System.Drawing.Size(760, 319);
+            this._operationsListViewEx.Size = new System.Drawing.Size(760, 213);
             this._operationsListViewEx.SmallImageList = this._operationsImageList;
             this._operationsListViewEx.TabIndex = 7;
             this._operationsListViewEx.UseCompatibleStateImageBehavior = false;
@@ -290,6 +295,47 @@
             this._aboutToolStripMenuItem.Text = "About...";
             this._aboutToolStripMenuItem.Click += new System.EventHandler(this.AboutToolStripMenuItem_Click);
             // 
+            // _errorsListViewEx
+            // 
+            this._errorsListViewEx.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this._errorsListViewEx.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this._errorType,
+            this._errorFileName,
+            this._errorFilePath,
+            this._errorResult});
+            this._errorsListViewEx.FullRowSelect = true;
+            this._errorsListViewEx.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
+            this._errorsListViewEx.Location = new System.Drawing.Point(12, 305);
+            this._errorsListViewEx.Name = "_errorsListViewEx";
+            this._errorsListViewEx.Size = new System.Drawing.Size(760, 100);
+            this._errorsListViewEx.SmallImageList = this._operationsImageList;
+            this._errorsListViewEx.TabIndex = 7;
+            this._errorsListViewEx.UseCompatibleStateImageBehavior = false;
+            this._errorsListViewEx.View = System.Windows.Forms.View.Details;
+            this._errorsListViewEx.VirtualMode = true;
+            this._errorsListViewEx.RetrieveVirtualItem += new System.Windows.Forms.RetrieveVirtualItemEventHandler(this.ErrorsListViewEx_RetrieveVirtualItem);
+            // 
+            // _errorType
+            // 
+            this._errorType.Text = "Error type";
+            this._errorType.Width = 120;
+            // 
+            // _errorFileName
+            // 
+            this._errorFileName.Text = "File name";
+            this._errorFileName.Width = 150;
+            // 
+            // _errorFilePath
+            // 
+            this._errorFilePath.Text = "File path";
+            this._errorFilePath.Width = 286;
+            // 
+            // _errorResult
+            // 
+            this._errorResult.Text = "Result";
+            this._errorResult.Width = 200;
+            // 
             // BackupForm
             // 
             this.AcceptButton = this._okButton;
@@ -297,6 +343,7 @@
             this.BackColor = System.Drawing.SystemColors.Window;
             this.CancelButton = this._cancelButton;
             this.ClientSize = new System.Drawing.Size(784, 461);
+            this.Controls.Add(this._errorsListViewEx);
             this.Controls.Add(this._operationsListViewEx);
             this.Controls.Add(this._destinationButton);
             this.Controls.Add(this._sourceButton);
@@ -345,5 +392,10 @@
         private System.Windows.Forms.ToolStripMenuItem _reportAnIssueToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator _toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem _aboutToolStripMenuItem;
+        private Controls.ListViewEx _errorsListViewEx;
+        private System.Windows.Forms.ColumnHeader _errorType;
+        private System.Windows.Forms.ColumnHeader _errorFileName;
+        private System.Windows.Forms.ColumnHeader _errorFilePath;
+        private System.Windows.Forms.ColumnHeader _errorResult;
     }
 }

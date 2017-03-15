@@ -42,7 +42,7 @@ namespace LocalBackup.IO
 
         public static bool AttributesEqual(FileAttributes attributes1, FileAttributes attributes2)
         {
-            return ((attributes1 ^ attributes2) & ~(FileAttributes.Archive | FileAttributes.ReparsePoint)) == 0;
+            return ((attributes1 ^ attributes2) & ~(FileAttributes.Directory | FileAttributes.Archive | FileAttributes.Normal | FileAttributes.ReparsePoint)) == 0;
         }
 
         public static void UnsetReadOnlyIfSet(FileSystemInfo fsi)
