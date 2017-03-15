@@ -40,7 +40,7 @@
             this._destinationTextBox = new System.Windows.Forms.TextBox();
             this._sourceButton = new System.Windows.Forms.Button();
             this._destinationButton = new System.Windows.Forms.Button();
-            this._operationsListViewEx = new LocalBackup.Controls.ListViewEx();
+            this._operationsListView = new LocalBackup.Controls.ExplorerListView();
             this._operationType = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this._operationFileName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this._operationFilePath = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
@@ -55,7 +55,7 @@
             this._reportAnIssueToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this._toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this._aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this._errorsListViewEx = new LocalBackup.Controls.ListViewEx();
+            this._errorsListView = new LocalBackup.Controls.ExplorerListView();
             this._errorType = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this._errorFileName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this._errorFilePath = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
@@ -165,27 +165,27 @@
             this._destinationButton.UseVisualStyleBackColor = true;
             this._destinationButton.Click += new System.EventHandler(this.Browse_Click);
             // 
-            // _operationsListViewEx
+            // _operationsListView
             // 
-            this._operationsListViewEx.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            this._operationsListView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this._operationsListViewEx.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this._operationsListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this._operationType,
             this._operationFileName,
             this._operationFilePath,
             this._operationResult});
-            this._operationsListViewEx.FullRowSelect = true;
-            this._operationsListViewEx.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
-            this._operationsListViewEx.Location = new System.Drawing.Point(12, 86);
-            this._operationsListViewEx.Name = "_operationsListViewEx";
-            this._operationsListViewEx.Size = new System.Drawing.Size(760, 213);
-            this._operationsListViewEx.SmallImageList = this._operationsImageList;
-            this._operationsListViewEx.TabIndex = 7;
-            this._operationsListViewEx.UseCompatibleStateImageBehavior = false;
-            this._operationsListViewEx.View = System.Windows.Forms.View.Details;
-            this._operationsListViewEx.VirtualMode = true;
-            this._operationsListViewEx.RetrieveVirtualItem += new System.Windows.Forms.RetrieveVirtualItemEventHandler(this.OperationsListView_RetrieveVirtualItem);
+            this._operationsListView.FullRowSelect = true;
+            this._operationsListView.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
+            this._operationsListView.Location = new System.Drawing.Point(12, 86);
+            this._operationsListView.Name = "_operationsListView";
+            this._operationsListView.Size = new System.Drawing.Size(760, 213);
+            this._operationsListView.SmallImageList = this._operationsImageList;
+            this._operationsListView.TabIndex = 7;
+            this._operationsListView.UseCompatibleStateImageBehavior = false;
+            this._operationsListView.View = System.Windows.Forms.View.Details;
+            this._operationsListView.VirtualMode = true;
+            this._operationsListView.RetrieveVirtualItem += new System.Windows.Forms.RetrieveVirtualItemEventHandler(this.OperationsListView_RetrieveVirtualItem);
             // 
             // _operationType
             // 
@@ -295,26 +295,26 @@
             this._aboutToolStripMenuItem.Text = "About...";
             this._aboutToolStripMenuItem.Click += new System.EventHandler(this.AboutToolStripMenuItem_Click);
             // 
-            // _errorsListViewEx
+            // _errorsListView
             // 
-            this._errorsListViewEx.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            this._errorsListView.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this._errorsListViewEx.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this._errorsListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this._errorType,
             this._errorFileName,
             this._errorFilePath,
             this._errorResult});
-            this._errorsListViewEx.FullRowSelect = true;
-            this._errorsListViewEx.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
-            this._errorsListViewEx.Location = new System.Drawing.Point(12, 305);
-            this._errorsListViewEx.Name = "_errorsListViewEx";
-            this._errorsListViewEx.Size = new System.Drawing.Size(760, 100);
-            this._errorsListViewEx.SmallImageList = this._operationsImageList;
-            this._errorsListViewEx.TabIndex = 7;
-            this._errorsListViewEx.UseCompatibleStateImageBehavior = false;
-            this._errorsListViewEx.View = System.Windows.Forms.View.Details;
-            this._errorsListViewEx.VirtualMode = true;
-            this._errorsListViewEx.RetrieveVirtualItem += new System.Windows.Forms.RetrieveVirtualItemEventHandler(this.ErrorsListViewEx_RetrieveVirtualItem);
+            this._errorsListView.FullRowSelect = true;
+            this._errorsListView.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
+            this._errorsListView.Location = new System.Drawing.Point(12, 305);
+            this._errorsListView.Name = "_errorsListView";
+            this._errorsListView.Size = new System.Drawing.Size(760, 100);
+            this._errorsListView.SmallImageList = this._operationsImageList;
+            this._errorsListView.TabIndex = 7;
+            this._errorsListView.UseCompatibleStateImageBehavior = false;
+            this._errorsListView.View = System.Windows.Forms.View.Details;
+            this._errorsListView.VirtualMode = true;
+            this._errorsListView.RetrieveVirtualItem += new System.Windows.Forms.RetrieveVirtualItemEventHandler(this.ErrorsListViewEx_RetrieveVirtualItem);
             // 
             // _errorType
             // 
@@ -343,8 +343,8 @@
             this.BackColor = System.Drawing.SystemColors.Window;
             this.CancelButton = this._cancelButton;
             this.ClientSize = new System.Drawing.Size(784, 461);
-            this.Controls.Add(this._errorsListViewEx);
-            this.Controls.Add(this._operationsListViewEx);
+            this.Controls.Add(this._errorsListView);
+            this.Controls.Add(this._operationsListView);
             this.Controls.Add(this._destinationButton);
             this.Controls.Add(this._sourceButton);
             this.Controls.Add(this._destinationTextBox);
@@ -374,7 +374,7 @@
         private System.Windows.Forms.TextBox _destinationTextBox;
         private System.Windows.Forms.Button _sourceButton;
         private System.Windows.Forms.Button _destinationButton;
-        private Controls.ListViewEx _operationsListViewEx;
+        private Controls.ExplorerListView _operationsListView;
         private System.Windows.Forms.ColumnHeader _operationType;
         private System.Windows.Forms.ColumnHeader _operationFileName;
         private System.Windows.Forms.ColumnHeader _operationFilePath;
@@ -392,7 +392,7 @@
         private System.Windows.Forms.ToolStripMenuItem _reportAnIssueToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator _toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem _aboutToolStripMenuItem;
-        private Controls.ListViewEx _errorsListViewEx;
+        private Controls.ExplorerListView _errorsListView;
         private System.Windows.Forms.ColumnHeader _errorType;
         private System.Windows.Forms.ColumnHeader _errorFileName;
         private System.Windows.Forms.ColumnHeader _errorFilePath;

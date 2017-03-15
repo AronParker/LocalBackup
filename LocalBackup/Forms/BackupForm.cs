@@ -105,9 +105,9 @@ namespace LocalBackup.Forms
                     
                     UpdateHeader(true);
 
-                    _operationsListViewEx.VirtualListSize = 0;
+                    _operationsListView.VirtualListSize = 0;
                     _operations.Clear();
-                    _errorsListViewEx.VirtualListSize = 0;
+                    _errorsListView.VirtualListSize = 0;
                     _errors.Clear();
 
                     _progressBar.Style = ProgressBarStyle.Continuous;
@@ -490,10 +490,10 @@ namespace LocalBackup.Forms
                 var errorsAdded = _backupForm._errors.Count > prevErrorCount;
 
                 if (operationsAdded)
-                    _backupForm._operationsListViewEx.VirtualListSize = _backupForm._operations.Count;
+                    _backupForm._operationsListView.VirtualListSize = _backupForm._operations.Count;
 
                 if (errorsAdded)
-                    _backupForm._errorsListViewEx.VirtualListSize = _backupForm._errors.Count;
+                    _backupForm._errorsListView.VirtualListSize = _backupForm._errors.Count;
                 
                 if (_backupForm._autoScrollToolStripMenuItem.Checked)
                     AutoScroll(operationsAdded, errorsAdded);
@@ -531,13 +531,13 @@ namespace LocalBackup.Forms
                 if (operationsAdded)
                 {
                     var lastOperation = _backupForm._operations.Count - 1;
-                    _backupForm._operationsListViewEx.EnsureVisible(lastOperation);
+                    _backupForm._operationsListView.EnsureVisible(lastOperation);
                 }
 
                 if (errorsAdded)
                 {
                     var lastError = _backupForm._errors.Count - 1;
-                    _backupForm._errorsListViewEx.EnsureVisible(lastError);
+                    _backupForm._errorsListView.EnsureVisible(lastError);
                 }
             }
 
@@ -611,13 +611,13 @@ namespace LocalBackup.Forms
                 _processedWeight = 0;
                 _totalWeight = 0;
                 
-                _backupForm._operationsListViewEx.BeginUpdate();
+                _backupForm._operationsListView.BeginUpdate();
                 foreach (var item in _backupForm._operations)
                 {
                     _totalWeight += item.Operation.Weight;
                     item.MarkAsPending();
                 }
-                _backupForm._operationsListViewEx.EndUpdate();
+                _backupForm._operationsListView.EndUpdate();
             }
 
             public async Task Run(CancellationToken ct)
@@ -718,7 +718,7 @@ namespace LocalBackup.Forms
 
             private void UpdateItems()
             {
-                _backupForm._operationsListViewEx.BeginUpdate();
+                _backupForm._operationsListView.BeginUpdate();
                 foreach (var result in _queue)
                 {
                     var item = _backupForm._operations[result.Index];
@@ -728,12 +728,12 @@ namespace LocalBackup.Forms
                     else
                         item.MarkAsFailure(result.Exception);
                 }
-                _backupForm._operationsListViewEx.EndUpdate();
+                _backupForm._operationsListView.EndUpdate();
 
                 if (_backupForm._autoScrollToolStripMenuItem.Checked)
                 {
                     var lastIndex = _queue[_queue.Count - 1].Index;
-                    _backupForm._operationsListViewEx.EnsureVisible(lastIndex);
+                    _backupForm._operationsListView.EnsureVisible(lastIndex);
                 }
 
                 _queue.Clear();

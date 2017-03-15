@@ -4,9 +4,9 @@ using System.Windows.Forms;
 
 namespace LocalBackup.Controls
 {
-    public class ListViewEx : ListView
+    public class ExplorerListView : ListView
     {
-        public ListViewEx()
+        public ExplorerListView()
         {
             DoubleBuffered = true;
         }

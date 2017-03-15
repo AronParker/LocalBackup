@@ -53,7 +53,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Controls\ListViewEx.cs">
+    <Compile Include="Controls\ExplorerListView.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Extensions\IListEx.cs" />
