@@ -10,7 +10,7 @@ namespace LocalBackup
         [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int memcmp(byte[] buf1, byte[] buf2, UIntPtr count);
 
-        [DllImport("uxtheme.dll")]
+        [DllImport("UxTheme.dll")]
         public static extern int SetWindowTheme(IntPtr hWnd,
                                                 [MarshalAs(UnmanagedType.LPWStr)] string appName,
                                                 [MarshalAs(UnmanagedType.LPWStr)] string partList);
