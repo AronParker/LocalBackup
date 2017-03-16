@@ -47,12 +47,11 @@ namespace LocalBackup.Forms
         
         public BackupForm()
         {
-            InitializeComponent();
-            
-            SetState(BackupFormState.Idle);
-            
             _findChangesTask = new FindChangesTask(this);
             _performChangesTask = new PerformChangesTask(this);
+
+            InitializeComponent();            
+            SetState(BackupFormState.Idle);
 
 #if DEBUG
             _sourceTextBox.Text = @"C:\Users\Aron\Desktop\1";
@@ -105,8 +104,10 @@ namespace LocalBackup.Forms
                     
                     UpdateHeader(true);
 
+                    _operationsLabel.Text = "No changes detected";
                     _operationsListView.VirtualListSize = 0;
                     _operations.Clear();
+                    _errorsLabel.Text = "No errors occured";
                     _errorsListView.VirtualListSize = 0;
                     _errors.Clear();
 
@@ -486,17 +487,35 @@ namespace LocalBackup.Forms
 
                 ProcessQueue();
 
-                var operationsAdded = _backupForm._operations.Count > prevOperationCount;
-                var errorsAdded = _backupForm._errors.Count > prevErrorCount;
+                var curOperationCount = _backupForm._operations.Count;
+                var curErrorCount = _backupForm._errors.Count;
 
-                if (operationsAdded)
+                if (curOperationCount > prevOperationCount)
+                {
+                    _backupForm._operationsLabel.Text = FormattableString.Invariant($"{curOperationCount} Change(s) detected");
                     _backupForm._operationsListView.VirtualListSize = _backupForm._operations.Count;
+                }
 
-                if (errorsAdded)
+                if (curErrorCount > prevErrorCount)
+                {
+                    _backupForm._errorsLabel.Text = FormattableString.Invariant($"{curErrorCount} Error(s) occured");
                     _backupForm._errorsListView.VirtualListSize = _backupForm._errors.Count;
-                
+                }
+
                 if (_backupForm._autoScrollToolStripMenuItem.Checked)
-                    AutoScroll(operationsAdded, errorsAdded);
+                {
+                    if (curOperationCount > prevOperationCount)
+                    {
+                        var lastOperation = _backupForm._operations.Count - 1;
+                        _backupForm._operationsListView.EnsureVisible(lastOperation);
+                    }
+
+                    if (curErrorCount > prevErrorCount)
+                    {
+                        var lastError = _backupForm._errors.Count - 1;
+                        _backupForm._errorsListView.EnsureVisible(lastError);
+                    }
+                }
             }
 
             private void ProcessQueue()
@@ -524,21 +543,6 @@ namespace LocalBackup.Forms
                 }
 
                 _mirrorer.ProcessingQueue.Clear();
-            }
-
-            private void AutoScroll(bool operationsAdded, bool errorsAdded)
-            {
-                if (operationsAdded)
-                {
-                    var lastOperation = _backupForm._operations.Count - 1;
-                    _backupForm._operationsListView.EnsureVisible(lastOperation);
-                }
-
-                if (errorsAdded)
-                {
-                    var lastError = _backupForm._errors.Count - 1;
-                    _backupForm._errorsListView.EnsureVisible(lastError);
-                }
             }
 
             private void Mirrorer_FlushRequested(object sender, EventArgs e)
@@ -614,7 +618,7 @@ namespace LocalBackup.Forms
                 _backupForm._operationsListView.BeginUpdate();
                 foreach (var item in _backupForm._operations)
                 {
-                    _totalWeight += item.Operation.Weight;
+                    _totalWeight += FileSystem.GetWeight(item.Operation);
                     item.MarkAsPending();
                 }
                 _backupForm._operationsListView.EndUpdate();
@@ -697,7 +701,7 @@ namespace LocalBackup.Forms
                     _queue.Add(new ChangeResult(index, ex));
                 }
 
-                _processedWeight += op.Weight;
+                _processedWeight += FileSystem.GetWeight(op);
             }
 
             private void RequestFlush()

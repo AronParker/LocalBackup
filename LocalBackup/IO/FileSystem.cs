@@ -2,6 +2,7 @@
 using System.IO;
 using System.Security;
 using LocalBackup.Extensions;
+using LocalBackup.IO.Operations;
 
 namespace LocalBackup.IO
 {
@@ -51,6 +52,24 @@ namespace LocalBackup.IO
 
             if ((attributes & FileAttributes.ReadOnly) != 0)
                 fsi.Attributes = attributes & ~FileAttributes.ReadOnly;
+        }
+
+        public static long GetWeight(FileSystemOperation op)
+        {
+            switch (op)
+            {
+                case CreateDirectoryOperation _:
+                case DestroyDirectoryOperation _:
+                case EditAttributesOperation _:
+                case DeleteFileOperation _:
+                    return 1;
+                case CopyFileOperation copy:
+                    return 1 + copy.SourceFile.Length / 8192;
+                case EditFileOperation edit:
+                    return 1 + edit.SourceFile.Length / 8192;
+                default:
+                    throw new NotSupportedException();
+            }
         }
     }
 }

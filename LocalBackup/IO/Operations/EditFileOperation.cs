@@ -12,7 +12,6 @@ namespace LocalBackup.IO.Operations
         
         public override string FileName => DestinationFile.Name;
         public override string FilePath => DestinationFile.FullName;
-        public override long Weight => SourceFile.Length / 8192 + 1;
         public FileInfo SourceFile { get; }
         public FileInfo DestinationFile { get; }
 

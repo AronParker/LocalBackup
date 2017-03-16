@@ -42,8 +42,8 @@
             this._destinationButton = new System.Windows.Forms.Button();
             this._operationsListView = new LocalBackup.Controls.ExplorerListView();
             this._operationTypeColumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this._operationFileNameColumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this._operationFilePathColumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this._operationNameColumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this._operationPathColumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this._operationResultColumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this._operationsImageList = new System.Windows.Forms.ImageList(this.components);
             this._menuStrip = new System.Windows.Forms.MenuStrip();
@@ -57,9 +57,12 @@
             this._aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this._errorsListView = new LocalBackup.Controls.ExplorerListView();
             this._errorType = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this._errorFileName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this._errorFilePath = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this._errorResult = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this._errorName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this._errorPath = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this._errorMessage = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this._directoriesLabel = new System.Windows.Forms.Label();
+            this._operationsLabel = new System.Windows.Forms.Label();
+            this._errorsLabel = new System.Windows.Forms.Label();
             this._footerPanel.SuspendLayout();
             this._menuStrip.SuspendLayout();
             this.SuspendLayout();
@@ -72,10 +75,10 @@
             this._footerPanel.Controls.Add(this._cancelButton);
             this._footerPanel.Controls.Add(this._okButton);
             this._footerPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this._footerPanel.Location = new System.Drawing.Point(0, 411);
+            this._footerPanel.Location = new System.Drawing.Point(0, 497);
             this._footerPanel.Name = "_footerPanel";
             this._footerPanel.Size = new System.Drawing.Size(784, 50);
-            this._footerPanel.TabIndex = 8;
+            this._footerPanel.TabIndex = 12;
             // 
             // _progressBar
             // 
@@ -113,20 +116,20 @@
             // _sourceLabel
             // 
             this._sourceLabel.CausesValidation = false;
-            this._sourceLabel.Location = new System.Drawing.Point(12, 27);
+            this._sourceLabel.Location = new System.Drawing.Point(12, 57);
             this._sourceLabel.Name = "_sourceLabel";
             this._sourceLabel.Size = new System.Drawing.Size(120, 23);
-            this._sourceLabel.TabIndex = 1;
+            this._sourceLabel.TabIndex = 2;
             this._sourceLabel.Text = "Source directory:";
             this._sourceLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // _destinationLabel
             // 
             this._destinationLabel.CausesValidation = false;
-            this._destinationLabel.Location = new System.Drawing.Point(12, 57);
+            this._destinationLabel.Location = new System.Drawing.Point(12, 87);
             this._destinationLabel.Name = "_destinationLabel";
             this._destinationLabel.Size = new System.Drawing.Size(120, 23);
-            this._destinationLabel.TabIndex = 2;
+            this._destinationLabel.TabIndex = 3;
             this._destinationLabel.Text = "Destination directory:";
             this._destinationLabel.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
@@ -135,29 +138,29 @@
             this._sourceTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this._sourceTextBox.CausesValidation = false;
-            this._sourceTextBox.Location = new System.Drawing.Point(138, 27);
+            this._sourceTextBox.Location = new System.Drawing.Point(138, 57);
             this._sourceTextBox.Name = "_sourceTextBox";
             this._sourceTextBox.Size = new System.Drawing.Size(528, 23);
-            this._sourceTextBox.TabIndex = 3;
+            this._sourceTextBox.TabIndex = 4;
             // 
             // _destinationTextBox
             // 
             this._destinationTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this._destinationTextBox.CausesValidation = false;
-            this._destinationTextBox.Location = new System.Drawing.Point(138, 57);
+            this._destinationTextBox.Location = new System.Drawing.Point(138, 87);
             this._destinationTextBox.Name = "_destinationTextBox";
             this._destinationTextBox.Size = new System.Drawing.Size(528, 23);
-            this._destinationTextBox.TabIndex = 4;
+            this._destinationTextBox.TabIndex = 5;
             // 
             // _sourceButton
             // 
             this._sourceButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this._sourceButton.CausesValidation = false;
-            this._sourceButton.Location = new System.Drawing.Point(672, 27);
+            this._sourceButton.Location = new System.Drawing.Point(672, 57);
             this._sourceButton.Name = "_sourceButton";
             this._sourceButton.Size = new System.Drawing.Size(100, 23);
-            this._sourceButton.TabIndex = 5;
+            this._sourceButton.TabIndex = 6;
             this._sourceButton.Text = "Browse...";
             this._sourceButton.UseVisualStyleBackColor = true;
             this._sourceButton.Click += new System.EventHandler(this.Browse_Click);
@@ -166,10 +169,10 @@
             // 
             this._destinationButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this._destinationButton.CausesValidation = false;
-            this._destinationButton.Location = new System.Drawing.Point(672, 57);
+            this._destinationButton.Location = new System.Drawing.Point(672, 87);
             this._destinationButton.Name = "_destinationButton";
             this._destinationButton.Size = new System.Drawing.Size(100, 23);
-            this._destinationButton.TabIndex = 6;
+            this._destinationButton.TabIndex = 7;
             this._destinationButton.Text = "Browse...";
             this._destinationButton.UseVisualStyleBackColor = true;
             this._destinationButton.Click += new System.EventHandler(this.Browse_Click);
@@ -182,16 +185,16 @@
             this._operationsListView.CausesValidation = false;
             this._operationsListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this._operationTypeColumnHeader,
-            this._operationFileNameColumnHeader,
-            this._operationFilePathColumnHeader,
+            this._operationNameColumnHeader,
+            this._operationPathColumnHeader,
             this._operationResultColumnHeader});
             this._operationsListView.FullRowSelect = true;
             this._operationsListView.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
-            this._operationsListView.Location = new System.Drawing.Point(12, 86);
+            this._operationsListView.Location = new System.Drawing.Point(12, 146);
             this._operationsListView.Name = "_operationsListView";
-            this._operationsListView.Size = new System.Drawing.Size(760, 213);
+            this._operationsListView.Size = new System.Drawing.Size(760, 209);
             this._operationsListView.SmallImageList = this._operationsImageList;
-            this._operationsListView.TabIndex = 7;
+            this._operationsListView.TabIndex = 9;
             this._operationsListView.UseCompatibleStateImageBehavior = false;
             this._operationsListView.View = System.Windows.Forms.View.Details;
             this._operationsListView.VirtualMode = true;
@@ -199,18 +202,18 @@
             // 
             // _operationTypeColumnHeader
             // 
-            this._operationTypeColumnHeader.Text = "Operation type";
+            this._operationTypeColumnHeader.Text = "Type";
             this._operationTypeColumnHeader.Width = 120;
             // 
-            // _operationFileNameColumnHeader
+            // _operationNameColumnHeader
             // 
-            this._operationFileNameColumnHeader.Text = "File name";
-            this._operationFileNameColumnHeader.Width = 150;
+            this._operationNameColumnHeader.Text = "Name";
+            this._operationNameColumnHeader.Width = 150;
             // 
-            // _operationFilePathColumnHeader
+            // _operationPathColumnHeader
             // 
-            this._operationFilePathColumnHeader.Text = "File path";
-            this._operationFilePathColumnHeader.Width = 286;
+            this._operationPathColumnHeader.Text = "Path";
+            this._operationPathColumnHeader.Width = 286;
             // 
             // _operationResultColumnHeader
             // 
@@ -256,7 +259,7 @@
             this._quickScanToolStripMenuItem.CheckOnClick = true;
             this._quickScanToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this._quickScanToolStripMenuItem.Name = "_quickScanToolStripMenuItem";
-            this._quickScanToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this._quickScanToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
             this._quickScanToolStripMenuItem.Text = "Quick scan";
             // 
             // _autoScrollToolStripMenuItem
@@ -265,7 +268,7 @@
             this._autoScrollToolStripMenuItem.CheckOnClick = true;
             this._autoScrollToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this._autoScrollToolStripMenuItem.Name = "_autoScrollToolStripMenuItem";
-            this._autoScrollToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this._autoScrollToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
             this._autoScrollToolStripMenuItem.Text = "Auto Scroll";
             // 
             // _helpToolStripMenuItem
@@ -312,16 +315,16 @@
             this._errorsListView.CausesValidation = false;
             this._errorsListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this._errorType,
-            this._errorFileName,
-            this._errorFilePath,
-            this._errorResult});
+            this._errorName,
+            this._errorPath,
+            this._errorMessage});
             this._errorsListView.FullRowSelect = true;
             this._errorsListView.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
-            this._errorsListView.Location = new System.Drawing.Point(12, 305);
+            this._errorsListView.Location = new System.Drawing.Point(12, 391);
             this._errorsListView.Name = "_errorsListView";
             this._errorsListView.Size = new System.Drawing.Size(760, 100);
             this._errorsListView.SmallImageList = this._operationsImageList;
-            this._errorsListView.TabIndex = 7;
+            this._errorsListView.TabIndex = 11;
             this._errorsListView.UseCompatibleStateImageBehavior = false;
             this._errorsListView.View = System.Windows.Forms.View.Details;
             this._errorsListView.VirtualMode = true;
@@ -329,23 +332,63 @@
             // 
             // _errorType
             // 
-            this._errorType.Text = "Error type";
+            this._errorType.Text = "Type";
             this._errorType.Width = 120;
             // 
-            // _errorFileName
+            // _errorName
             // 
-            this._errorFileName.Text = "File name";
-            this._errorFileName.Width = 150;
+            this._errorName.Text = "Name";
+            this._errorName.Width = 150;
             // 
-            // _errorFilePath
+            // _errorPath
             // 
-            this._errorFilePath.Text = "File path";
-            this._errorFilePath.Width = 286;
+            this._errorPath.Text = "Path";
+            this._errorPath.Width = 286;
             // 
-            // _errorResult
+            // _errorMessage
             // 
-            this._errorResult.Text = "Result";
-            this._errorResult.Width = 200;
+            this._errorMessage.Text = "Message";
+            this._errorMessage.Width = 200;
+            // 
+            // _directoriesLabel
+            // 
+            this._directoriesLabel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this._directoriesLabel.CausesValidation = false;
+            this._directoriesLabel.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this._directoriesLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(51)))), ((int)(((byte)(153)))));
+            this._directoriesLabel.Location = new System.Drawing.Point(12, 24);
+            this._directoriesLabel.Name = "_directoriesLabel";
+            this._directoriesLabel.Size = new System.Drawing.Size(760, 30);
+            this._directoriesLabel.TabIndex = 1;
+            this._directoriesLabel.Text = "Directories";
+            this._directoriesLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // _operationsLabel
+            // 
+            this._operationsLabel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this._operationsLabel.CausesValidation = false;
+            this._operationsLabel.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this._operationsLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(51)))), ((int)(((byte)(153)))));
+            this._operationsLabel.Location = new System.Drawing.Point(12, 113);
+            this._operationsLabel.Name = "_operationsLabel";
+            this._operationsLabel.Size = new System.Drawing.Size(760, 30);
+            this._operationsLabel.TabIndex = 8;
+            this._operationsLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // _errorsLabel
+            // 
+            this._errorsLabel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this._errorsLabel.CausesValidation = false;
+            this._errorsLabel.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this._errorsLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(51)))), ((int)(((byte)(153)))));
+            this._errorsLabel.Location = new System.Drawing.Point(12, 358);
+            this._errorsLabel.Name = "_errorsLabel";
+            this._errorsLabel.Size = new System.Drawing.Size(760, 30);
+            this._errorsLabel.TabIndex = 10;
+            this._errorsLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // BackupForm
             // 
@@ -354,21 +397,23 @@
             this.BackColor = System.Drawing.SystemColors.Window;
             this.CancelButton = this._cancelButton;
             this.CausesValidation = false;
-            this.ClientSize = new System.Drawing.Size(784, 461);
-            this.Controls.Add(this._errorsListView);
-            this.Controls.Add(this._operationsListView);
-            this.Controls.Add(this._destinationButton);
-            this.Controls.Add(this._sourceButton);
-            this.Controls.Add(this._destinationTextBox);
-            this.Controls.Add(this._sourceTextBox);
-            this.Controls.Add(this._destinationLabel);
-            this.Controls.Add(this._sourceLabel);
-            this.Controls.Add(this._footerPanel);
+            this.ClientSize = new System.Drawing.Size(784, 547);
             this.Controls.Add(this._menuStrip);
+            this.Controls.Add(this._directoriesLabel);
+            this.Controls.Add(this._sourceLabel);
+            this.Controls.Add(this._destinationLabel);
+            this.Controls.Add(this._sourceTextBox);
+            this.Controls.Add(this._destinationTextBox);
+            this.Controls.Add(this._sourceButton);
+            this.Controls.Add(this._destinationButton);
+            this.Controls.Add(this._operationsLabel);
+            this.Controls.Add(this._operationsListView);
+            this.Controls.Add(this._errorsLabel);
+            this.Controls.Add(this._errorsListView);
+            this.Controls.Add(this._footerPanel);
             this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this._menuStrip;
-            this.MinimumSize = new System.Drawing.Size(600, 400);
             this.Name = "BackupForm";
             this._footerPanel.ResumeLayout(false);
             this._menuStrip.ResumeLayout(false);
@@ -389,8 +434,8 @@
         private System.Windows.Forms.Button _destinationButton;
         private Controls.ExplorerListView _operationsListView;
         private System.Windows.Forms.ColumnHeader _operationTypeColumnHeader;
-        private System.Windows.Forms.ColumnHeader _operationFileNameColumnHeader;
-        private System.Windows.Forms.ColumnHeader _operationFilePathColumnHeader;
+        private System.Windows.Forms.ColumnHeader _operationNameColumnHeader;
+        private System.Windows.Forms.ColumnHeader _operationPathColumnHeader;
         private System.Windows.Forms.ColumnHeader _operationResultColumnHeader;
         private System.Windows.Forms.ProgressBar _progressBar;
         private System.Windows.Forms.Button _cancelButton;
@@ -407,8 +452,11 @@
         private System.Windows.Forms.ToolStripMenuItem _aboutToolStripMenuItem;
         private Controls.ExplorerListView _errorsListView;
         private System.Windows.Forms.ColumnHeader _errorType;
-        private System.Windows.Forms.ColumnHeader _errorFileName;
-        private System.Windows.Forms.ColumnHeader _errorFilePath;
-        private System.Windows.Forms.ColumnHeader _errorResult;
+        private System.Windows.Forms.ColumnHeader _errorName;
+        private System.Windows.Forms.ColumnHeader _errorPath;
+        private System.Windows.Forms.ColumnHeader _errorMessage;
+        private System.Windows.Forms.Label _directoriesLabel;
+        private System.Windows.Forms.Label _operationsLabel;
+        private System.Windows.Forms.Label _errorsLabel;
     }
 }
