@@ -67,6 +67,7 @@
             // _footerPanel
             // 
             this._footerPanel.BackColor = System.Drawing.SystemColors.Control;
+            this._footerPanel.CausesValidation = false;
             this._footerPanel.Controls.Add(this._progressBar);
             this._footerPanel.Controls.Add(this._cancelButton);
             this._footerPanel.Controls.Add(this._okButton);
@@ -89,6 +90,7 @@
             // _cancelButton
             // 
             this._cancelButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this._cancelButton.CausesValidation = false;
             this._cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this._cancelButton.Location = new System.Drawing.Point(652, 12);
             this._cancelButton.Name = "_cancelButton";
@@ -100,6 +102,7 @@
             // _okButton
             // 
             this._okButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this._okButton.CausesValidation = false;
             this._okButton.Location = new System.Drawing.Point(526, 12);
             this._okButton.Name = "_okButton";
             this._okButton.Size = new System.Drawing.Size(120, 26);
@@ -109,6 +112,7 @@
             // 
             // _sourceLabel
             // 
+            this._sourceLabel.CausesValidation = false;
             this._sourceLabel.Location = new System.Drawing.Point(12, 27);
             this._sourceLabel.Name = "_sourceLabel";
             this._sourceLabel.Size = new System.Drawing.Size(120, 23);
@@ -118,6 +122,7 @@
             // 
             // _destinationLabel
             // 
+            this._destinationLabel.CausesValidation = false;
             this._destinationLabel.Location = new System.Drawing.Point(12, 57);
             this._destinationLabel.Name = "_destinationLabel";
             this._destinationLabel.Size = new System.Drawing.Size(120, 23);
@@ -129,6 +134,7 @@
             // 
             this._sourceTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this._sourceTextBox.CausesValidation = false;
             this._sourceTextBox.Location = new System.Drawing.Point(138, 27);
             this._sourceTextBox.Name = "_sourceTextBox";
             this._sourceTextBox.Size = new System.Drawing.Size(528, 23);
@@ -138,6 +144,7 @@
             // 
             this._destinationTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this._destinationTextBox.CausesValidation = false;
             this._destinationTextBox.Location = new System.Drawing.Point(138, 57);
             this._destinationTextBox.Name = "_destinationTextBox";
             this._destinationTextBox.Size = new System.Drawing.Size(528, 23);
@@ -146,6 +153,7 @@
             // _sourceButton
             // 
             this._sourceButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this._sourceButton.CausesValidation = false;
             this._sourceButton.Location = new System.Drawing.Point(672, 27);
             this._sourceButton.Name = "_sourceButton";
             this._sourceButton.Size = new System.Drawing.Size(100, 23);
@@ -157,6 +165,7 @@
             // _destinationButton
             // 
             this._destinationButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this._destinationButton.CausesValidation = false;
             this._destinationButton.Location = new System.Drawing.Point(672, 57);
             this._destinationButton.Name = "_destinationButton";
             this._destinationButton.Size = new System.Drawing.Size(100, 23);
@@ -170,6 +179,7 @@
             this._operationsListView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this._operationsListView.CausesValidation = false;
             this._operationsListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this._operationTypeColumnHeader,
             this._operationFileNameColumnHeader,
@@ -246,7 +256,7 @@
             this._quickScanToolStripMenuItem.CheckOnClick = true;
             this._quickScanToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this._quickScanToolStripMenuItem.Name = "_quickScanToolStripMenuItem";
-            this._quickScanToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
+            this._quickScanToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this._quickScanToolStripMenuItem.Text = "Quick scan";
             // 
             // _autoScrollToolStripMenuItem
@@ -255,7 +265,7 @@
             this._autoScrollToolStripMenuItem.CheckOnClick = true;
             this._autoScrollToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this._autoScrollToolStripMenuItem.Name = "_autoScrollToolStripMenuItem";
-            this._autoScrollToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
+            this._autoScrollToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this._autoScrollToolStripMenuItem.Text = "Auto Scroll";
             // 
             // _helpToolStripMenuItem
@@ -299,6 +309,7 @@
             // 
             this._errorsListView.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this._errorsListView.CausesValidation = false;
             this._errorsListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this._errorType,
             this._errorFileName,
@@ -342,6 +353,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.SystemColors.Window;
             this.CancelButton = this._cancelButton;
+            this.CausesValidation = false;
             this.ClientSize = new System.Drawing.Size(784, 461);
             this.Controls.Add(this._errorsListView);
             this.Controls.Add(this._operationsListView);
@@ -356,6 +368,7 @@
             this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this._menuStrip;
+            this.MinimumSize = new System.Drawing.Size(600, 400);
             this.Name = "BackupForm";
             this._footerPanel.ResumeLayout(false);
             this._menuStrip.ResumeLayout(false);
