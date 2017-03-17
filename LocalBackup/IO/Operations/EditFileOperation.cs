@@ -17,7 +17,7 @@ namespace LocalBackup.IO.Operations
 
         public override void Perform()
         {
-            FileSystem.UnsetReadOnlyIfSet(DestinationFile);
+            UnsetReadOnlyIfSet(DestinationFile);
             SourceFile.CopyTo(DestinationFile.FullName, true);
         }
     }

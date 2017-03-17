@@ -35,23 +35,5 @@ namespace LocalBackup.IO
                 throw new FileSystemInfoException(file, ex);
             }
         }
-        
-        public static bool ContainsSpecialDirectoryAttributes(FileAttributes attributes)
-        {
-            return (attributes & ~(FileAttributes.Directory | FileAttributes.Archive | FileAttributes.ReparsePoint)) != 0;
-        }
-
-        public static bool AttributesEqual(FileAttributes attributes1, FileAttributes attributes2)
-        {
-            return ((attributes1 ^ attributes2) & ~(FileAttributes.Directory | FileAttributes.Archive | FileAttributes.Normal | FileAttributes.ReparsePoint)) == 0;
-        }
-
-        public static void UnsetReadOnlyIfSet(FileSystemInfo fsi)
-        {
-            var attributes = fsi.Attributes;
-
-            if ((attributes & FileAttributes.ReadOnly) != 0)
-                fsi.Attributes = attributes & ~FileAttributes.ReadOnly;
-        }
     }
 }

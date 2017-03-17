@@ -17,7 +17,7 @@ namespace LocalBackup.IO.Operations
 
         public override void Perform()
         {
-            FileSystem.UnsetReadOnlyIfSet(_file);
+            UnsetReadOnlyIfSet(_file);
             _file.Delete();
         }
     }

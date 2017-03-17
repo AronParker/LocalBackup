@@ -64,6 +64,16 @@ namespace LocalBackup.IO
             Error?.Invoke(this, new FileSystemInfoErrorEventArgs(ex));
         }
 
+        private static bool ContainsSpecialDirectoryAttributes(FileAttributes attributes)
+        {
+            return (attributes & ~(FileAttributes.Directory | FileAttributes.Archive | FileAttributes.ReparsePoint)) != 0;
+        }
+
+        private static bool AttributesEqual(FileAttributes attributes1, FileAttributes attributes2)
+        {
+            return ((attributes1 ^ attributes2) & ~(FileAttributes.Directory | FileAttributes.Archive | FileAttributes.Normal | FileAttributes.ReparsePoint)) == 0;
+        }
+
         private void InternalStart(DirectoryInfo srcDir, DirectoryInfo dstDir, IFileInfoEqualityComparer fileInfoComparer)
         {
             if (dstDir.Exists)
@@ -92,7 +102,7 @@ namespace LocalBackup.IO
 
                 _stack.RemoveRange(index, 2);
 
-                if (!FileSystem.AttributesEqual(srcDir.Attributes, dstDir.Attributes))
+                if (!AttributesEqual(srcDir.Attributes, dstDir.Attributes))
                     OnOperationFound(new EditAttributesOperation(dstDir, srcDir.Attributes));
 
                 GetDirectoryChanges(srcDir, dstDir, fileInfoComparer);
@@ -177,7 +187,7 @@ namespace LocalBackup.IO
                     {
                         if (!fileInfoComparer.Equals(srcFile, dstFile))
                             OnOperationFound(new EditFileOperation(srcFile, dstFile));
-                        else if (!FileSystem.AttributesEqual(srcFile.Attributes, dstFile.Attributes))
+                        else if (!AttributesEqual(srcFile.Attributes, dstFile.Attributes))
                             OnOperationFound(new EditAttributesOperation(dstFile, srcFile.Attributes));
                     }
                     catch (FileSystemInfoException ex)
@@ -225,7 +235,7 @@ namespace LocalBackup.IO
 
                 _detector.OnOperationFound(new CreateDirectoryOperation(dstDir));
 
-                if (FileSystem.ContainsSpecialDirectoryAttributes(srcDir.Attributes))
+                if (ContainsSpecialDirectoryAttributes(srcDir.Attributes))
                     _detector.OnOperationFound(new EditAttributesOperation(dstDir, srcDir.Attributes));
 
                 GetOperations();
@@ -266,7 +276,7 @@ namespace LocalBackup.IO
 
                             _detector.OnOperationFound(new CreateDirectoryOperation(dstDir));
 
-                            if (FileSystem.ContainsSpecialDirectoryAttributes(srcDir.Attributes))
+                            if (ContainsSpecialDirectoryAttributes(srcDir.Attributes))
                                 _detector.OnOperationFound(new EditAttributesOperation(dstDir, srcDir.Attributes));
 
                             _stack.Add(srcDir);
