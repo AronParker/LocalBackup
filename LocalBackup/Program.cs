@@ -4,10 +4,10 @@ using LocalBackup.Forms;
 
 namespace LocalBackup
 {
-    public static class Program
+    static class Program
     {
         [STAThread]
-        public static void Main()
+        static void Main()
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);

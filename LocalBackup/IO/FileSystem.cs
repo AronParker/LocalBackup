@@ -18,7 +18,7 @@ namespace LocalBackup.IO
                                        ex is UnauthorizedAccessException ||
                                        ex is SecurityException)
             {
-                throw new FileException(file, ex);
+                throw new FileSystemInfoException(file, ex);
             }
         }
 
@@ -32,7 +32,7 @@ namespace LocalBackup.IO
                                        ex is UnauthorizedAccessException ||
                                        ex is SecurityException)
             {
-                throw new FileException(file, ex);
+                throw new FileSystemInfoException(file, ex);
             }
         }
         
@@ -52,24 +52,6 @@ namespace LocalBackup.IO
 
             if ((attributes & FileAttributes.ReadOnly) != 0)
                 fsi.Attributes = attributes & ~FileAttributes.ReadOnly;
-        }
-
-        public static long GetWeight(FileSystemOperation op)
-        {
-            switch (op)
-            {
-                case CreateDirectoryOperation _:
-                case DestroyDirectoryOperation _:
-                case EditAttributesOperation _:
-                case DeleteFileOperation _:
-                    return 1;
-                case CopyFileOperation copy:
-                    return 1 + copy.SourceFile.Length / 8192;
-                case EditFileOperation edit:
-                    return 1 + edit.SourceFile.Length / 8192;
-                default:
-                    throw new NotSupportedException();
-            }
         }
     }
 }

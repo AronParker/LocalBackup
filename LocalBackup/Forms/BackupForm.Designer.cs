@@ -45,7 +45,7 @@
             this._operationNameColumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this._operationPathColumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this._operationResultColumnHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this._operationsImageList = new System.Windows.Forms.ImageList(this.components);
+            this._imageList = new System.Windows.Forms.ImageList(this.components);
             this._menuStrip = new System.Windows.Forms.MenuStrip();
             this._optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this._quickScanToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -193,7 +193,7 @@
             this._operationsListView.Location = new System.Drawing.Point(12, 146);
             this._operationsListView.Name = "_operationsListView";
             this._operationsListView.Size = new System.Drawing.Size(760, 209);
-            this._operationsListView.SmallImageList = this._operationsImageList;
+            this._operationsListView.SmallImageList = this._imageList;
             this._operationsListView.TabIndex = 9;
             this._operationsListView.UseCompatibleStateImageBehavior = false;
             this._operationsListView.View = System.Windows.Forms.View.Details;
@@ -220,18 +220,18 @@
             this._operationResultColumnHeader.Text = "Result";
             this._operationResultColumnHeader.Width = 200;
             // 
-            // _operationsImageList
+            // _imageList
             // 
-            this._operationsImageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("_operationsImageList.ImageStream")));
-            this._operationsImageList.TransparentColor = System.Drawing.Color.Transparent;
-            this._operationsImageList.Images.SetKeyName(0, "folder_add.png");
-            this._operationsImageList.Images.SetKeyName(1, "folder_delete.png");
-            this._operationsImageList.Images.SetKeyName(2, "page_add.png");
-            this._operationsImageList.Images.SetKeyName(3, "page_edit.png");
-            this._operationsImageList.Images.SetKeyName(4, "page_gear.png");
-            this._operationsImageList.Images.SetKeyName(5, "page_delete.png");
-            this._operationsImageList.Images.SetKeyName(6, "folder_error.png");
-            this._operationsImageList.Images.SetKeyName(7, "page_error.png");
+            this._imageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("_imageList.ImageStream")));
+            this._imageList.TransparentColor = System.Drawing.Color.Transparent;
+            this._imageList.Images.SetKeyName(0, "folder_add.png");
+            this._imageList.Images.SetKeyName(1, "folder_delete.png");
+            this._imageList.Images.SetKeyName(2, "page_add.png");
+            this._imageList.Images.SetKeyName(3, "page_edit.png");
+            this._imageList.Images.SetKeyName(4, "page_gear.png");
+            this._imageList.Images.SetKeyName(5, "page_delete.png");
+            this._imageList.Images.SetKeyName(6, "folder_error.png");
+            this._imageList.Images.SetKeyName(7, "page_error.png");
             // 
             // _menuStrip
             // 
@@ -323,7 +323,7 @@
             this._errorsListView.Location = new System.Drawing.Point(12, 391);
             this._errorsListView.Name = "_errorsListView";
             this._errorsListView.Size = new System.Drawing.Size(760, 100);
-            this._errorsListView.SmallImageList = this._operationsImageList;
+            this._errorsListView.SmallImageList = this._imageList;
             this._errorsListView.TabIndex = 11;
             this._errorsListView.UseCompatibleStateImageBehavior = false;
             this._errorsListView.View = System.Windows.Forms.View.Details;
@@ -440,7 +440,7 @@
         private System.Windows.Forms.ProgressBar _progressBar;
         private System.Windows.Forms.Button _cancelButton;
         private System.Windows.Forms.Button _okButton;
-        private System.Windows.Forms.ImageList _operationsImageList;
+        private System.Windows.Forms.ImageList _imageList;
         private System.Windows.Forms.MenuStrip _menuStrip;
         private System.Windows.Forms.ToolStripMenuItem _optionsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem _quickScanToolStripMenuItem;

@@ -26,7 +26,7 @@ namespace LocalBackup.IO
         }
 
         public event FileSystemOperationHandler OperationFound;
-        public event ErrorEventHandler Error;
+        public event FileSystemInfoErrorEventHandler Error;
         
         public bool IsRunning => _task != null && !_task.IsCompleted;
 
@@ -59,9 +59,9 @@ namespace LocalBackup.IO
             OperationFound?.Invoke(this, new FileSystemOperationEventArgs(operation));
         }
 
-        protected virtual void OnError(Exception ex)
+        protected virtual void OnError(FileSystemInfoException ex)
         {
-            Error?.Invoke(this, new ErrorEventArgs(ex));
+            Error?.Invoke(this, new FileSystemInfoErrorEventArgs(ex));
         }
 
         private void InternalStart(DirectoryInfo srcDir, DirectoryInfo dstDir, IFileInfoEqualityComparer fileInfoComparer)
@@ -115,7 +115,7 @@ namespace LocalBackup.IO
                                        ex is UnauthorizedAccessException ||
                                        ex is SecurityException)
             {
-                OnError(new DirectoryException(dstDir, ex));
+                OnError(new FileSystemInfoException(dstDir, ex));
             }
 
             CopyRemainingFileSystemInfosTo(dstDir);
@@ -134,7 +134,7 @@ namespace LocalBackup.IO
                                        ex is UnauthorizedAccessException ||
                                        ex is SecurityException)
             {
-                OnError(new DirectoryException(srcDir, ex));
+                OnError(new FileSystemInfoException(srcDir, ex));
             }
         }
 
@@ -180,7 +180,7 @@ namespace LocalBackup.IO
                         else if (!FileSystem.AttributesEqual(srcFile.Attributes, dstFile.Attributes))
                             OnOperationFound(new EditAttributesOperation(dstFile, srcFile.Attributes));
                     }
-                    catch (FileException ex)
+                    catch (FileSystemInfoException ex)
                     {
                         OnError(ex);
                     }
@@ -278,7 +278,7 @@ namespace LocalBackup.IO
                                            ex is UnauthorizedAccessException ||
                                            ex is SecurityException)
                 {
-                    _detector.OnError(new DirectoryException(curSrcDir, ex));
+                    _detector.OnError(new FileSystemInfoException(curSrcDir, ex));
                 }
             }
         }
@@ -345,7 +345,7 @@ namespace LocalBackup.IO
                                            ex is UnauthorizedAccessException ||
                                            ex is SecurityException)
                 {
-                    _detector.OnError(new DirectoryException(curDir, ex));
+                    _detector.OnError(new FileSystemInfoException(curDir, ex));
                 }
             }
 
