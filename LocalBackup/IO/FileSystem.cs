@@ -2,7 +2,6 @@
 using System.IO;
 using System.Security;
 using LocalBackup.Extensions;
-using LocalBackup.IO.Operations;
 
 namespace LocalBackup.IO
 {
