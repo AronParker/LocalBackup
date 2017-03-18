@@ -257,16 +257,8 @@ namespace LocalBackup.Forms
             switch (_state)
             {
                 case BackupFormState.Idle:
-                    if (!_findChangesTask.SetSourceDirectory(_sourceTextBox.Text))
+                    if (!_findChangesTask.Init(_sourceTextBox.Text, _destinationTextBox.Text, _quickScanToolStripMenuItem.Checked))
                         return;
-
-                    if (!_findChangesTask.SetDestinationDirectory(_destinationTextBox.Text))
-                        return;
-
-                    if (!_findChangesTask.FindComparer(_quickScanToolStripMenuItem.Checked))
-                        return;
-
-                    _findChangesTask.Init();
 
                     using (_cts = new CancellationTokenSource())
                         await _findChangesTask.RunAsync(_cts.Token);
@@ -321,87 +313,20 @@ namespace LocalBackup.Forms
                 _backupForm = backupForm;
                 _mirrorer = new DirectoryMirrorerEx(this);
             }
-            
-            public bool SetSourceDirectory(string sourceDirectory)
-            {
-                try
-                {
-                    _sourceDirectory = new DirectoryInfo(sourceDirectory);
-                }
-                catch (Exception ex) when (ex is ArgumentException ||
-                                           ex is PathTooLongException ||
-                                           ex is SecurityException)
 
-                {
-                    MessageBox.Show("The source directory you specified is invalid: " + ex.Message,
-                                    "Source directory invalid",
-                                    MessageBoxButtons.OK,
-                                    MessageBoxIcon.Error);
+            public bool Init(string sourceDirectory, string destinationDirectory, bool quickScan)
+            {
+                if (!SetSourceDirectory(sourceDirectory))
                     return false;
-                }
 
-                if (!_sourceDirectory.Exists)
-                {
-                    MessageBox.Show("The source directory you specified does not exist.",
-                                    "Source directory not found",
-                                    MessageBoxButtons.OK,
-                                    MessageBoxIcon.Error);
+                if (!SetDestinationDirectory(destinationDirectory))
                     return false;
-                }
 
-                return true;
-            }
-
-            public bool SetDestinationDirectory(string destinationDirectory)
-            {
-                try
-                {
-                    _destinationDirectory = new DirectoryInfo(destinationDirectory);
-                    return true;
-                }
-                catch (Exception ex) when (ex is ArgumentException ||
-                                           ex is PathTooLongException ||
-                                           ex is SecurityException)
-
-                {
-                    MessageBox.Show("The destination directory you specified is invalid: " + ex.Message,
-                                    "Destination directory invalid",
-                                    MessageBoxButtons.OK,
-                                    MessageBoxIcon.Error);
+                if (!SetComparer(quickScan))
                     return false;
-                }
-            }
 
-            public bool FindComparer(bool quickScan)
-            {
-                bool AssumeNTFS()
-                {
-                    return MessageBox.Show("Failed to detect destination file system. Would you like to perform a quick scan anyway on the assumption that the destination file system is NTFS?",
-                                           "Unknown file system",
-                                           MessageBoxButtons.YesNo,
-                                           MessageBoxIcon.Error) == DialogResult.Yes;
-                }
-
-                if (quickScan)
-                {
-                    var fileSystem = GetDestinationFileSystem();
-
-                    if (fileSystem == null && !AssumeNTFS())
-                        return false;
-
-                    _fileInfoComparer = CreateQuickScanComparer(fileSystem);
-                }
-                else
-                {
-                    _fileInfoComparer = new DefaultFileEqualityComparer();
-                }
-
-                return true;
-            }
-
-            public void Init()
-            {
                 _mirrorer.Init();
+                return true;
             }
 
             public async Task RunAsync(CancellationToken ct)
@@ -437,6 +362,83 @@ namespace LocalBackup.Forms
                                 "Info",
                                 MessageBoxButtons.OK,
                                 MessageBoxIcon.Information);
+            }
+
+            private bool SetSourceDirectory(string sourceDirectory)
+            {
+                try
+                {
+                    _sourceDirectory = new DirectoryInfo(sourceDirectory);
+                }
+                catch (Exception ex) when (ex is ArgumentException ||
+                                           ex is PathTooLongException ||
+                                           ex is SecurityException)
+
+                {
+                    MessageBox.Show("The source directory you specified is invalid: " + ex.Message,
+                                    "Source directory invalid",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Error);
+                    return false;
+                }
+
+                if (!_sourceDirectory.Exists)
+                {
+                    MessageBox.Show("The source directory you specified does not exist.",
+                                    "Source directory not found",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Error);
+                    return false;
+                }
+
+                return true;
+            }
+
+            private bool SetDestinationDirectory(string destinationDirectory)
+            {
+                try
+                {
+                    _destinationDirectory = new DirectoryInfo(destinationDirectory);
+                    return true;
+                }
+                catch (Exception ex) when (ex is ArgumentException ||
+                                           ex is PathTooLongException ||
+                                           ex is SecurityException)
+
+                {
+                    MessageBox.Show("The destination directory you specified is invalid: " + ex.Message,
+                                    "Destination directory invalid",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Error);
+                    return false;
+                }
+            }
+
+            private bool SetComparer(bool quickScan)
+            {
+                bool AssumeNTFS()
+                {
+                    return MessageBox.Show("Failed to detect destination file system. Would you like to perform a quick scan anyway on the assumption that the destination file system is NTFS?",
+                                           "Unknown file system",
+                                           MessageBoxButtons.YesNo,
+                                           MessageBoxIcon.Error) == DialogResult.Yes;
+                }
+
+                if (quickScan)
+                {
+                    var fileSystem = GetDestinationFileSystem();
+
+                    if (fileSystem == null && !AssumeNTFS())
+                        return false;
+
+                    _fileInfoComparer = CreateQuickScanComparer(fileSystem);
+                }
+                else
+                {
+                    _fileInfoComparer = new DefaultFileEqualityComparer();
+                }
+
+                return true;
             }
 
             private void DisplayErrors()
