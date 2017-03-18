@@ -28,7 +28,8 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
@@ -58,7 +59,6 @@
     </Compile>
     <Compile Include="Extensions\IListEx.cs" />
     <Compile Include="Extensions\StreamEx.cs" />
-    <Compile Include="Extensions\TimeSpanEx.cs" />
     <Compile Include="Forms\BackupForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -84,6 +84,7 @@
     <Compile Include="IO\Operations\DestroyDirectoryOperation.cs" />
     <Compile Include="IO\Operations\EditDirectoryOperation.cs" />
     <Compile Include="IO\Operations\EditFileOperation.cs" />
+    <Compile Include="Localizations\Localization.cs" />
     <Compile Include="NativeMethods.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

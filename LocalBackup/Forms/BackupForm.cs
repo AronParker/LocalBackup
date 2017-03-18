@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -15,6 +16,9 @@ using LocalBackup.Extensions;
 using LocalBackup.IO;
 using LocalBackup.IO.FileEqualityComparers;
 using LocalBackup.IO.Operations;
+using LocalBackup.Localizations;
+using static LocalBackup.NativeMethods;
+
 namespace LocalBackup.Forms
 {
     public partial class BackupForm : Form
@@ -52,11 +56,6 @@ namespace LocalBackup.Forms
 
             InitializeComponent();            
             SetState(BackupFormState.Idle);
-
-#if DEBUG
-            _sourceTextBox.Text = @"C:\Users\Aron\Desktop\1";
-            _destinationTextBox.Text = @"C:\Users\Aron\Desktop\2";
-#endif
         }
 
         private enum BackupFormState
@@ -215,31 +214,43 @@ namespace LocalBackup.Forms
             MessageBox.Show("Made by Aron Parker", "About", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
+        private void TextBox_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+                e.Effect = DragDropEffects.Link;
+        }
+        
+        private void TextBox_DragDrop(object sender, DragEventArgs e)
+        {
+            var folders = (string[])e.Data.GetData(DataFormats.FileDrop);
+            var folder = folders.FirstOrDefault(x => Directory.Exists(x));
+            
+            if (folder != null)
+                ((TextBox)sender).Text = folder;
+        }
+
         private void Browse_Click(object sender, EventArgs e)
         {
-            using (var fbd = new FolderBrowserDialog())
+            var ofd = new OpenFolderDialog();
+
+            if (sender == _sourceButton)
             {
-                if (sender == _sourceButton)
-                {
-                    fbd.SelectedPath = _sourceTextBox.Text;
-                    fbd.Description = "Select source directory:";
-                    fbd.ShowNewFolderButton = false;
-                }
-                else if (sender == _destinationButton)
-                {
-                    fbd.SelectedPath = _destinationTextBox.Text;
-                    fbd.Description = "Select destination directory:";
-                    fbd.ShowNewFolderButton = true;
-                }
-
-                if (fbd.ShowDialog() != DialogResult.OK)
-                    return;
-
-                if (sender == _sourceButton)
-                    _sourceTextBox.Text = fbd.SelectedPath;
-                else if (sender == _destinationButton)
-                    _destinationTextBox.Text = fbd.SelectedPath;
+                ofd.Title = "Select source directory";
+                ofd.SelectedPath = _sourceTextBox.Text;
             }
+            else if (sender == _destinationButton)
+            {
+                ofd.Title = "Select destination directory";
+                ofd.SelectedPath = _destinationTextBox.Text;
+            }
+
+            if (!ofd.Show(this))
+                return;
+            
+            if (sender == _sourceButton)
+                _sourceTextBox.Text = ofd.SelectedPath;
+            else if (sender == _destinationButton)
+                _destinationTextBox.Text = ofd.SelectedPath;
         }
 
         private void OperationsListView_RetrieveVirtualItem(object sender, RetrieveVirtualItemEventArgs e)
@@ -320,6 +331,9 @@ namespace LocalBackup.Forms
                     return false;
 
                 if (!SetDestinationDirectory(destinationDirectory))
+                    return false;
+
+                if (SourceAndDestinationDirectoriesEqual())
                     return false;
 
                 if (!SetComparer(quickScan))
@@ -414,6 +428,20 @@ namespace LocalBackup.Forms
                 }
             }
 
+            private bool SourceAndDestinationDirectoriesEqual()
+            {
+                if (string.Equals(_sourceDirectory.FullName, _destinationDirectory.FullName, StringComparison.OrdinalIgnoreCase))
+                {
+                    MessageBox.Show("The source directory and destination directory refer to the same location.",
+                                    "Source and destination directories equal",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Warning);
+                    return true;
+                }
+                
+                return false;
+            }
+
             private bool SetComparer(bool quickScan)
             {
                 bool AssumeNTFS()
@@ -448,7 +476,9 @@ namespace LocalBackup.Forms
                 if (errors == 0)
                     return;
 
-                MessageBox.Show($"{errors} error(s) occured while finding changes.", $"{errors} error(s) occured", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                var localizedErrors = Localization.GetPlural(errors, "error");
+
+                MessageBox.Show($"{localizedErrors} occured while finding changes.", $"{localizedErrors} occured", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
 
             private string GetDestinationFileSystem()
@@ -496,7 +526,7 @@ namespace LocalBackup.Forms
                 _backupForm._operations.AddRange(_mirrorer.PendingOperations);
                 _mirrorer.PendingOperations.Clear();
                 _backupForm._operationsListView.VirtualListSize = _backupForm._operations.Count;
-                _backupForm._operationsLabel.Text = FormattableString.Invariant($"{_backupForm._operations.Count} change(s) detected");
+                _backupForm._operationsLabel.Text = $"{Localization.GetPlural(_backupForm._operations.Count, "change")} detected";
 
                 if (_backupForm._autoScrollToolStripMenuItem.Checked)
                 {
@@ -510,7 +540,7 @@ namespace LocalBackup.Forms
                 _backupForm._errors.AddRange(_mirrorer.PendingErrors);
                 _mirrorer.PendingErrors.Clear();
                 _backupForm._errorsListView.VirtualListSize = _backupForm._errors.Count;
-                _backupForm._errorsLabel.Text = FormattableString.Invariant($"{_backupForm._errors.Count} error(s) occured");
+                _backupForm._errorsLabel.Text = $"{Localization.GetPlural(_backupForm._errors.Count, "error")} occured";
 
                 if (_backupForm._autoScrollToolStripMenuItem.Checked)
                 {
@@ -652,7 +682,7 @@ namespace LocalBackup.Forms
                 var changes = _backupForm._operations.Count;
                 var elapsed = DateTimeOffset.UtcNow - _performer.Start;
 
-                _backupForm.Text = FormattableString.Invariant($"Backup Utility - {changes} change(s) performed in {elapsed.ToHumanReadableString()}");
+                _backupForm.Text = $"Backup Utility - {Localization.GetPlural(changes, "change")} performed in {Localization.GetHumanReadableTimeSpan(elapsed)}";
 
             }
 
@@ -663,7 +693,9 @@ namespace LocalBackup.Forms
                 if (errors == 0)
                     return;
 
-                MessageBox.Show($"{errors} error(s) occured while performing changes.", $"{errors} error(s) occured", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                var localizedErrors = Localization.GetPlural(errors, "error");
+
+                MessageBox.Show($"{localizedErrors} occured while performing changes.", $"{localizedErrors} occured", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
 
             private void Update()
@@ -700,6 +732,7 @@ namespace LocalBackup.Forms
             private void UpdateProgress()
             {
                 var percentage = (double)_performer.ProcessedWeight / _performer.TotalWeight;
+                var localizedPercentage = percentage.ToString("P0", NumberFormatInfo.InvariantInfo);
 
                 if (percentage >= DisplayTimeRemainingThreshold)
                 {
@@ -707,11 +740,11 @@ namespace LocalBackup.Forms
                     var total = (long)(elapsed / percentage);
                     var remaining = new TimeSpan(total - elapsed);
 
-                    _backupForm.Text = FormattableString.Invariant($"Backup Utility - Performing changes ({percentage:P0}, {remaining.ToHumanReadableString()} left)");
+                    _backupForm.Text = $"Backup Utility - Performing changes ({localizedPercentage}, {Localization.GetHumanReadableTimeSpan(remaining)} left)";
                 }
                 else
                 {
-                    _backupForm.Text = FormattableString.Invariant($"Backup Utility - Performing changes ({percentage:P0})");
+                    _backupForm.Text = $"Backup Utility - Performing changes ({localizedPercentage})";
                 }
 
                 _backupForm._progressBar.Value = (int)(percentage * 10000);
@@ -898,6 +931,53 @@ namespace LocalBackup.Forms
                 }
 
                 Success = false;
+            }
+        }
+
+        private class OpenFolderDialog
+        {
+            private IFileOpenDialog dialog;
+
+            public OpenFolderDialog()
+            {
+                dialog = new IFileOpenDialog();
+                dialog.SetOptions(FOS.PICKFOLDERS | FOS.FORCEFILESYSTEM | FOS.PATHMUSTEXIST | FOS.FILEMUSTEXIST);
+            }
+
+            public string Title
+            {
+                set => dialog.SetTitle(value);
+            }
+
+            public string SelectedPath
+            {
+                get
+                {
+                    dialog.GetFolder(out var si);
+                    si.GetDisplayName(SIGDN.FILESYSPATH, out var folder);
+                    return folder;
+                }
+                set
+                {
+                    if (!Directory.Exists(value))
+                        return;
+
+                    var iid = typeof(IShellItem).GUID;
+                    var hr = SHCreateItemFromParsingName(value, IntPtr.Zero, ref iid, out var folder);
+
+                    if (hr >= 0)
+                        dialog.SetFolder(folder);
+                }
+            }
+
+            public bool Show()
+            {
+                return Show(null);
+            }
+
+            public bool Show(IWin32Window owner)
+            {
+                return dialog.Show(owner?.Handle ?? IntPtr.Zero) >= 0;
             }
         }
     }

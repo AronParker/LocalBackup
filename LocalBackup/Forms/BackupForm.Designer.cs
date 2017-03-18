@@ -135,6 +135,7 @@
             // 
             // _sourceTextBox
             // 
+            this._sourceTextBox.AllowDrop = true;
             this._sourceTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this._sourceTextBox.CausesValidation = false;
@@ -142,9 +143,12 @@
             this._sourceTextBox.Name = "_sourceTextBox";
             this._sourceTextBox.Size = new System.Drawing.Size(528, 23);
             this._sourceTextBox.TabIndex = 4;
+            this._sourceTextBox.DragDrop += new System.Windows.Forms.DragEventHandler(this.TextBox_DragDrop);
+            this._sourceTextBox.DragEnter += new System.Windows.Forms.DragEventHandler(this.TextBox_DragEnter);
             // 
             // _destinationTextBox
             // 
+            this._destinationTextBox.AllowDrop = true;
             this._destinationTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this._destinationTextBox.CausesValidation = false;
@@ -152,6 +156,8 @@
             this._destinationTextBox.Name = "_destinationTextBox";
             this._destinationTextBox.Size = new System.Drawing.Size(528, 23);
             this._destinationTextBox.TabIndex = 5;
+            this._destinationTextBox.DragDrop += new System.Windows.Forms.DragEventHandler(this.TextBox_DragDrop);
+            this._destinationTextBox.DragEnter += new System.Windows.Forms.DragEventHandler(this.TextBox_DragEnter);
             // 
             // _sourceButton
             // 
@@ -393,6 +399,7 @@
             // BackupForm
             // 
             this.AcceptButton = this._okButton;
+            this.AllowDrop = true;
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.SystemColors.Window;
             this.CancelButton = this._cancelButton;
