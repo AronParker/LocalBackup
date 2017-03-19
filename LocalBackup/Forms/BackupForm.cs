@@ -223,7 +223,7 @@ namespace LocalBackup.Forms
         private void TextBox_DragDrop(object sender, DragEventArgs e)
         {
             var folders = (string[])e.Data.GetData(DataFormats.FileDrop);
-            var folder = folders.FirstOrDefault(x => Directory.Exists(x));
+            var folder = folders.SingleOrDefault(x => Directory.Exists(x));
             
             if (folder != null)
                 ((TextBox)sender).Text = folder;
@@ -463,7 +463,7 @@ namespace LocalBackup.Forms
                 }
                 else
                 {
-                    _fileInfoComparer = new DefaultFileEqualityComparer();
+                    _fileInfoComparer = new FileEqualityComparer();
                 }
 
                 return true;
@@ -505,7 +505,7 @@ namespace LocalBackup.Forms
                         return new FATFileEqualityComparer();
                     case "NTFS":
                     default:
-                        return new DefaultFileInfoEqualityComparer();
+                        return new FileInfoEqualityComparer();
                 }
             }
 
