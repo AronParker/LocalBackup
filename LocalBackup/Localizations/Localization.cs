@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using static System.FormattableString;
 
 namespace LocalBackup.Localizations
 {
@@ -19,7 +15,7 @@ namespace LocalBackup.Localizations
             if (count == 1)
                 return "1 " + word;
 
-            return count.ToString(NumberFormatInfo.InvariantInfo) + " " + word + "s";
+            return Invariant($"{count} {word}s");
         }
 
         public static string GetPlural(long count, string word)
@@ -32,7 +28,7 @@ namespace LocalBackup.Localizations
             if (count == 1)
                 return "1 " + word;
 
-            return count.ToString(NumberFormatInfo.InvariantInfo) + " " + word + "s";
+            return Invariant($"{count} {word}s");
         }
 
         public static string GetHumanReadableTimeSpan(TimeSpan ts)

@@ -6,17 +6,15 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using LocalBackup.Controls;
-using LocalBackup.Extensions;
 using LocalBackup.IO;
 using LocalBackup.IO.FileEqualityComparers;
 using LocalBackup.IO.Operations;
 using LocalBackup.Localizations;
+using static System.FormattableString;
 using static LocalBackup.NativeMethods;
 
 namespace LocalBackup.Forms
@@ -680,7 +678,7 @@ namespace LocalBackup.Forms
             private void DisplayChangesAndElapsed()
             {
                 var changes = _backupForm._operations.Count;
-                var elapsed = DateTimeOffset.UtcNow - _performer.Start;
+                var elapsed = DateTime.UtcNow - _performer.Start;
 
                 _backupForm.Text = $"Backup Utility - {Localization.GetPlural(changes, "change")} performed in {Localization.GetHumanReadableTimeSpan(elapsed)}";
 
@@ -732,19 +730,18 @@ namespace LocalBackup.Forms
             private void UpdateProgress()
             {
                 var percentage = (double)_performer.ProcessedWeight / _performer.TotalWeight;
-                var localizedPercentage = percentage.ToString("P0", NumberFormatInfo.InvariantInfo);
 
                 if (percentage >= DisplayTimeRemainingThreshold)
                 {
-                    var elapsed = (DateTimeOffset.UtcNow - _performer.Start).Ticks;
+                    var elapsed = (DateTime.UtcNow - _performer.Start).Ticks;
                     var total = (long)(elapsed / percentage);
                     var remaining = new TimeSpan(total - elapsed);
 
-                    _backupForm.Text = $"Backup Utility - Performing changes ({localizedPercentage}, {Localization.GetHumanReadableTimeSpan(remaining)} left)";
+                    _backupForm.Text = Invariant($"Backup Utility - Performing changes ({percentage:P0}, {Localization.GetHumanReadableTimeSpan(remaining)} left)");
                 }
                 else
                 {
-                    _backupForm.Text = $"Backup Utility - Performing changes ({localizedPercentage})";
+                    _backupForm.Text = Invariant($"Backup Utility - Performing changes ({percentage:P0})");
                 }
 
                 _backupForm._progressBar.Value = (int)(percentage * 10000);
@@ -936,24 +933,24 @@ namespace LocalBackup.Forms
 
         private class OpenFolderDialog
         {
-            private IFileOpenDialog dialog;
+            private IFileOpenDialog _dialog;
 
             public OpenFolderDialog()
             {
-                dialog = new IFileOpenDialog();
-                dialog.SetOptions(FOS.PICKFOLDERS | FOS.FORCEFILESYSTEM | FOS.PATHMUSTEXIST | FOS.FILEMUSTEXIST);
+                _dialog = new IFileOpenDialog();
+                _dialog.SetOptions(FOS.PICKFOLDERS | FOS.FORCEFILESYSTEM | FOS.PATHMUSTEXIST | FOS.FILEMUSTEXIST);
             }
 
             public string Title
             {
-                set => dialog.SetTitle(value);
+                set => _dialog.SetTitle(value);
             }
 
             public string SelectedPath
             {
                 get
                 {
-                    dialog.GetFolder(out var si);
+                    _dialog.GetFolder(out var si);
                     si.GetDisplayName(SIGDN.FILESYSPATH, out var folder);
                     return folder;
                 }
@@ -966,7 +963,7 @@ namespace LocalBackup.Forms
                     var hr = SHCreateItemFromParsingName(value, IntPtr.Zero, ref iid, out var folder);
 
                     if (hr >= 0)
-                        dialog.SetFolder(folder);
+                        _dialog.SetFolder(folder);
                 }
             }
 
@@ -977,7 +974,7 @@ namespace LocalBackup.Forms
 
             public bool Show(IWin32Window owner)
             {
-                return dialog.Show(owner?.Handle ?? IntPtr.Zero) >= 0;
+                return _dialog.Show(owner?.Handle ?? IntPtr.Zero) >= 0;
             }
         }
     }
