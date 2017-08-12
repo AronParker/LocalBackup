@@ -230,7 +230,7 @@ namespace LocalBackup.Forms
         private void Browse_Click(object sender, EventArgs e)
         {
             var ofd = new OpenFolderDialog();
-
+            
             if (sender == _sourceButton)
             {
                 ofd.Title = "Select source directory";
