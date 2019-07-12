@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security;
@@ -138,7 +137,7 @@ namespace LocalBackup.Forms
                     _cancelButton.Text = "Discard changes";
                     break;
                 case BackupFormState.PerformingChanges:
-                    Text = "Backup Utility - Performing changes";
+                    Text = "Local Backup - Performing changes";
 
                     UpdateHeader(false);
 
@@ -149,7 +148,7 @@ namespace LocalBackup.Forms
                     _cancelButton.Text = "Cancel";
                     break;
                 case BackupFormState.Canceling:
-                    Text = "Backup Utility - Canceling...";
+                    Text = "Local Backup - Canceling...";
 
                     UpdateHeader(false);
 
@@ -363,7 +362,7 @@ namespace LocalBackup.Forms
                 }
                 catch (OperationCanceledException)
                 {
-                    _backupForm.Text = "Backup Utility - Canceled";
+                    _backupForm.Text = "Local Backup - Canceled";
                     _backupForm.SetState(BackupFormState.Done);
                 }
             }
@@ -652,7 +651,7 @@ namespace LocalBackup.Forms
                 }
                 catch (OperationCanceledException)
                 {
-                    _backupForm.Text = "Backup Utility - Canceled";
+                    _backupForm.Text = "Local Backup - Canceled";
                     _backupForm.SetState(BackupFormState.Done);
                 }
             }
@@ -680,7 +679,7 @@ namespace LocalBackup.Forms
                 var changes = _backupForm._operations.Count;
                 var elapsed = DateTime.UtcNow - _performer.Start;
 
-                _backupForm.Text = $"Backup Utility - {Localization.GetPlural(changes, "change")} performed in {Localization.GetHumanReadableTimeSpan(elapsed)}";
+                _backupForm.Text = $"Local Backup - {Localization.GetPlural(changes, "change")} performed in {Localization.GetHumanReadableTimeSpan(elapsed)}";
 
             }
 
@@ -737,11 +736,11 @@ namespace LocalBackup.Forms
                     var total = (long)(elapsed / percentage);
                     var remaining = new TimeSpan(total - elapsed);
 
-                    _backupForm.Text = Invariant($"Backup Utility - Performing changes ({percentage:P0}, {Localization.GetHumanReadableTimeSpan(remaining)} left)");
+                    _backupForm.Text = Invariant($"Local Backup - Performing changes ({percentage:P0}, {Localization.GetHumanReadableTimeSpan(remaining)} left)");
                 }
                 else
                 {
-                    _backupForm.Text = Invariant($"Backup Utility - Performing changes ({percentage:P0})");
+                    _backupForm.Text = Invariant($"Local Backup - Performing changes ({percentage:P0})");
                 }
 
                 _backupForm._progressBar.Value = (int)(percentage * 10000);
